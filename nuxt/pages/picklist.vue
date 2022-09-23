@@ -316,7 +316,7 @@ export default {
                 msg = '弃审成功'
                 status = 0
             }
-            var data = { w: { pn: this.formData.pn }, v: { audited: audited, auditedat: auditedat, status: status } }
+            var data = { w: { id: this.formData.id }, v: { audited: audited, auditedat: auditedat, status: status } }
             this.submitLoading = true
             this.$axios({
                 method: 'PATCH',

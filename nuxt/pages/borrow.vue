@@ -339,7 +339,7 @@ export default {
                 auditedat = null
                 msg = '弃审成功'
             }
-            var data = { w: { pn: this.formData.pn }, v: { audited: audited, auditedat: auditedat, status: 1 } }
+            var data = { w: { id: this.formData.id }, v: { audited: audited, auditedat: auditedat, status: 1 } }
             this.submitLoading = true
             this.$axios({
                 method: 'PATCH',
@@ -477,22 +477,6 @@ export default {
             }
             res.push(t)
             return res
-        },
-        getInfo() {
-            if(!this.formData.pn) { return }
-            if(!this.inventory[this.formData.pn]) {
-                this.formData.pn = null
-                this.$message({ message: '料号不存在', type: 'error' })
-                return
-            }
-            if(this.mpnList.indexOf(this.formData.pn) > -1){
-                this.formData.pn = null
-                this.$message({ message: '当前料号已存在替代料', type: 'error' })
-                return              
-            }
-            this.formData.name = this.inventory[this.formData.pn].name
-            this.formData.model = this.inventory[this.formData.pn].model
-            this.formData.namedesc = this.inventory[this.formData.pn].namedesc
         },
         getName(row) {
             if(!row.pn) { return }

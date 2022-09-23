@@ -25,14 +25,14 @@
             </vxe-form-item>
             <vxe-form-item title="分类" field="cat" :item-render="{}">
                 <template #default="{ data }">
-                    <vxe-select v-model="data.cat" @change="showRelatedFrom=true">
+                    <vxe-select v-model="data.cat" @change="showModal()">
                         <vxe-option value="采购入库" label="采购入库"></vxe-option>
                         <vxe-option value="生产入库" label="生产入库"></vxe-option>
                         <vxe-option value="销售退货" label="销售退货"></vxe-option>
                         <vxe-option value="其他入库" label="其他入库"></vxe-option>
                         <vxe-option value="调拨入库" label="调拨入库" disabled></vxe-option>                        
                     </vxe-select>
-                    <vxe-modal v-model="showRelatedFrom" title="关联单据" width="1600" height="800" resize remember>
+                    <vxe-modal v-model="showRelatedFrom" title="关联单据" width="1600" height="800" resize>
                         <template #default>
                             <vxe-toolbar>
                                 <template #buttons>
@@ -41,24 +41,45 @@
                                         <vxe-option value="生产入库" label="生产入库"></vxe-option>
                                         <vxe-option value="销售退货" label="销售退货"></vxe-option>
                                     </vxe-select>
-                                    <vxe-input style="margin-left: 2rem;" v-model="formSearchVal" placeholder="请输入单号" type="search" clearable @keydown="formEnterSearch($event)" @search-click="formSearchEvent()"></vxe-input>
+                                    <vxe-input style="margin-left: 2rem;" v-model="modalSearchVal" placeholder="请输入单号" type="search" clearable @keydown="modalEnterSearch($event)" @search-click="modalSearchEvent()"></vxe-input>
+                                    <vxe-button @click="getModalData()">确定</vxe-button>
                                 </template>
                             </vxe-toolbar>
+                            <vxe-form :data="modalFormData">
+                                <vxe-form-item title="单号" field="id">
+                                    <template #default="{ data }">
+                                        <vxe-input v-model="data.id" readonly></vxe-input>
+                                    </template>
+                                </vxe-form-item>
+                                <vxe-form-item title="制单" field="created">
+                                    <template #default="{ data }">
+                                        <vxe-input v-model="data.created" readonly></vxe-input>
+                                    </template>
+                                </vxe-form-item>
+                                <vxe-form-item title="制单时间" field="createdat">
+                                    <template #default="{ data }">
+                                        <vxe-input v-model="data.createdat" readonly></vxe-input>
+                                    </template>
+                                </vxe-form-item>
+                                <vxe-form-item title="备注" field="comment">
+                                    <template #default="{ data }">
+                                        <vxe-input v-model="data.comment" readonly></vxe-input>
+                                    </template>
+                                </vxe-form-item>
+                            </vxe-form>
                             <vxe-table
                                 border
                                 stripe
                                 resizable
                                 show-overflow
-                                ref="xTable"
                                 height="660"
                                 header-align="center"
                                 :row-config="{isHover: true, isCurrent: true, useKey: true}"
-                                :data="formTable">
-                                <vxe-column type="checkbox" width="60"></vxe-column>
+                                :data="modalTable">
                                 <vxe-column type="seq" title="序号" width="80"></vxe-column>
-                                <vxe-column field="pn" title="料号" :edit-render="{name: 'input', props: {type: 'text' }}" width="120"></vxe-column>
-                                <vxe-column field="qty" title="数量" :edit-render="{name: 'input', props: {type: 'number'}}" width="120"></vxe-column>
-                                <vxe-column field="comment" title="备注" :edit-render="{name: 'input', props: {type: 'text'}}" width="180"></vxe-column>
+                                <vxe-column field="pn" title="料号" width="120"></vxe-column>
+                                <vxe-column field="qty" title="数量" width="120"></vxe-column>
+                                <vxe-column field="comment" title="备注" width="180"></vxe-column>
                                 <vxe-column field="name" title="品名" width="180">
                                     <template #default="{ row }">
                                         <span>{{ getName(row) }}</span>
@@ -89,11 +110,6 @@
                     <vxe-input v-model="data.comment"></vxe-input>
                 </template>
             </vxe-form-item>
-            <vxe-form-item title="状态" field="status" :item-render="{}">
-                <template #default="{}">
-                    <vxe-input v-model="status"></vxe-input>
-                </template>
-            </vxe-form-item>
         </vxe-form>
         <div style="border:1px lightgray solid" :class="{ 'readonly': ctrlDisabled.table }">
             <vxe-toolbar style="padding-left:10px">
@@ -116,8 +132,6 @@
                 <vxe-column type="seq" title="序号" width="80"></vxe-column>
                 <vxe-column field="pn" title="料号" :edit-render="{name: 'input', props: {type: 'text' }}" width="120"></vxe-column>
                 <vxe-column field="qty" title="数量" :edit-render="{name: 'input', props: {type: 'number'}}" width="120"></vxe-column>
-                <vxe-column field="taxincluded" title="含税价" :edit-render="{name: 'input', props: {type: 'number'}}" width="120"></vxe-column>
-                <vxe-column field="taxrate" title="税率" :edit-render="{name: 'input', props: {type: 'number'}}" width="120"></vxe-column>
                 <vxe-column field="comment" title="备注" :edit-render="{name: 'input', props: {type: 'text'}}" width="200"></vxe-column>
                 <vxe-column field="name" title="品名" width="200">
                     <template #default="{ row }">
@@ -182,8 +196,14 @@ export default {
     data() {
         return {
             whList: [],
-            formTable: [],
-            formSearchVal: '',
+            modalFormData: {
+                id: null,
+                created: null,
+                createdat: null,
+                comment: null
+            },
+            modalTable: [],
+            modalSearchVal: '',
             formData: {
                 id: null,
                 wh: null,
@@ -195,7 +215,6 @@ export default {
                 editedat: null,
                 audited: null,
                 auditedat: null,
-                status: 0,
                 comment: null
             },
             formRules: {
@@ -222,13 +241,6 @@ export default {
     },
     computed: {
         ...mapState(['inventory']),
-        status() {
-            if(this.formData.status==0) {
-                return '待审核'
-            } else if(this.formData.status==1) {
-                return '待入库'
-            }
-        },
         auditBtn() {
             return this.formData.audited ? '弃审' : '审核'
         }
@@ -253,45 +265,121 @@ export default {
         })
     },
     methods : {
-        formEnterSearch($event) {
-            if($event.$event.key=='Enter') { 
-                this.formSearchEvent()
+        showModal() {
+            if(this.formData.cat!='其他入库' && this.formData.cat!='调拨入库') {
+                this.showRelatedFrom = true
             }
         },
-        formSearchEvent() {
-            if(Number(this.searchVal)) {
-                this.searchVal = (Array(10).join(0) + Number(this.searchVal)).slice(-10)
+        modalEnterSearch($event) {
+            if($event.$event.key=='Enter') { 
+                this.modalSearchEvent()
+            }
+        },
+        modalSearchEvent() {
+            if(Number(this.modalSearchVal)) {
+                this.modalSearchVal = (Array(10).join(0) + Number(this.modalSearchVal)).slice(-10)
             } else {
                 this.$message({ message: '单号错误', type: 'warning' })
                 return
             }
             this.submitLoading = true
-            this.$axios({
-                method: 'GET',
-                url: '/api/receipt',
-                params: { id: this.searchVal }
-            }).then(res => {
-                if(res.data['receipt_m'].length==0) {
-                    this.$message({ message: '没有找到记录', type: 'warning' })
-                    return
-                }
-                this.submitLoading = false
-                this.formData = res.data['receipt_m'][0]
-                this.tableData = res.data['receipt_c']
-                this.ctrlDisabled.saveBtn = true
-                this.ctrlDisabled.auditBtn = false
-                this.ctrlDisabled.table = true
-                if(this.formData.audited) {
-                    this.ctrlDisabled.deleteBtn = true
-                    this.ctrlDisabled.editBtn = true               
-                } else {                        
-                    this.ctrlDisabled.deleteBtn = false
-                    this.ctrlDisabled.editBtn = false 
-                }
-            }).catch(err => {
-                this.submitLoading = false
-                this.$message({ message: err, type: 'error' })
+            if(this.formData.cat=='采购入库') {
+                this.$axios({
+                    method: 'GET',
+                    url: '/api/po',
+                    params: { id: this.modalSearchVal }
+                }).then(res => {
+                    if(res.data['po_m'].length==0) {
+                        this.$message({ message: '没有找到记录', type: 'warning' })
+                        return
+                    }
+                    if(!res.data['po_m'][0]['audited']) {
+                        this.$message({ message: '当前采购单未审核', type: 'warning' })
+                        return
+                    }
+                    if(res.data['po_m'][0]['status']==-1) {
+                        this.$message({ message: '当前采购单已入库', type: 'warning' })
+                        return
+                    }
+                    this.modalTable = res.data['po_c']
+                    this.modalFormData['id'] = res.data['po_m'][0]['id']
+                    this.modalFormData['created'] = res.data['po_m'][0]['created']
+                    this.modalFormData['createdat'] = res.data['po_m'][0]['createdat']
+                    this.modalFormData['comment'] = res.data['po_m'][0]['comment']
+                    this.submitLoading = false
+                }).catch(err => {
+                    this.submitLoading = false
+                    this.$message({ message: err, type: 'error' })
+                })
+            } else if(this.formData.cat=='生产入库') {
+                this.$axios({
+                    method: 'GET',
+                    url: '/api/producewh',
+                    params: { id: this.modalSearchVal }
+                }).then(res => {
+                    if(res.data['producewh_m'].length==0) {
+                        this.$message({ message: '没有找到记录', type: 'warning' })
+                        return
+                    }
+                    if(!res.data['producewh_m'][0]['audited']) {
+                        this.$message({ message: '当前生产入库单未审核', type: 'warning' })
+                        return
+                    }
+                    if(res.data['producewh_m'][0]['status']==-1) {
+                        this.$message({ message: '当前生产入库单已入库', type: 'warning' })
+                        return
+                    }
+                    this.modalTable = res.data['producewh_c']
+                    this.modalFormData['id'] = res.data['producewh_m'][0]['id']
+                    this.modalFormData['created'] = res.data['producewh_m'][0]['created']
+                    this.modalFormData['createdat'] = res.data['producewh_m'][0]['createdat']
+                    this.modalFormData['comment'] = res.data['producewh_m'][0]['comment']
+                    this.submitLoading = false
+                }).catch(err => {
+                    this.submitLoading = false
+                    this.$message({ message: err, type: 'error' })
+                })
+            } else if(this.formData.cat=='销售退货') {
+                this.$axios({
+                    method: 'GET',
+                    url: '/api/so',
+                    params: { id: this.modalSearchVal }
+                }).then(res => {
+                    if(res.data['so_m'].length==0) {
+                        this.$message({ message: '没有找到记录', type: 'warning' })
+                        return
+                    }
+                    if(res.data['so_m'][0]['status']==-1) {
+                        this.$message({ message: '当前销售单已入库', type: 'warning' })
+                        return
+                    }
+                    producewh_m
+                    this.modalTable = res.data['so_c']
+                    this.modalFormData['id'] = res.data['so_m'][0]['id']
+                    this.modalFormData['created'] = res.data['so_m'][0]['created']
+                    this.modalFormData['createdat'] = res.data['so_m'][0]['createdat']
+                    this.modalFormData['comment'] = res.data['so_m'][0]['comment']
+                    this.submitLoading = false
+                }).catch(err => {
+                    this.submitLoading = false
+                    this.$message({ message: err, type: 'error' })
+                })
+            }
+        },
+        getModalData() {
+            this.formData.superiorid = this.modalFormData.id
+            this.tableData = []
+            this.modalTable.forEach(item => {
+                this.tableData.push({pn: item.pn, qty: item.qty})
             })
+            this.modalFormData = {
+                id: null,
+                created: null,
+                createdat: null,
+                comment: null
+            }
+            this.modalTable = []
+            this.showRelatedFrom = false
         },
         enterSearch($event) {
             if($event.$event.key=='Enter') { 
@@ -356,25 +444,20 @@ export default {
             }).then(res => {
                 this.formData = {
                     id: res.data,
-                    contract: null,
-                    deliverat: null,
-                    vendor: null,
+                    wh: null,
                     cat: null,
-                    cnee: null,
-                    addr: null,
-                    tel: null,
+                    superiorid: null,
                     created: this.$store.state.user.name,
                     createdat: new Date().toLocaleString('chinese', { hour12: false }),
                     edited: null,
                     editedat: null,
                     audited: null,
                     auditedat: null,
-                    status: 0,
                     comment: null
                 }
                 this.$refs.xTable.remove()
                 for(var i=0;i<10;i++) {
-                    this.$refs.xTable.insert({status: true})
+                    this.$refs.xTable.insert({})
                 }
                 this.$nuxt.$emit('btnCtrl', 'add', res => {
                     this.ctrlDisabled = res
@@ -425,6 +508,7 @@ export default {
                         }
                         this.$refs.xTable.remove()
                         this.$message({ message: '删除成功', type: 'success' })
+                        this.updateStatus(1)
                     } else {
                         this.ctrlDisabled = btnStatus
                     }
@@ -447,7 +531,7 @@ export default {
                 msg = '弃审成功'
                 status = 0
             }
-            var data = { w: { pn: this.formData.pn }, v: { audited: audited, auditedat: auditedat, status: status } }
+            var data = { w: { id: this.formData.id }, v: { audited: audited, auditedat: auditedat, status: status } }
             this.submitLoading = true
             this.$axios({
                 method: 'PATCH',
@@ -513,6 +597,7 @@ export default {
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
+                                this.updateStatus(-1)
                             } else {
                                 this.ctrlDisabled = btnStatus
                             }
@@ -538,7 +623,7 @@ export default {
                 }
             }
             if(t.length==0) {
-                this.$message({ message: '未填写采购明细', type: 'error' })
+                this.$message({ message: '未填写入库明细', type: 'error' })
                 return
             }
             res.push(t)
@@ -591,6 +676,51 @@ export default {
         },
         insertRowEvent() {
             this.$refs.xTable.insertAt({},-1)
+        },
+        updateStatus(s) {
+            var data = { w: { id: this.formData.superiorid }, v: { status: s } }, msg='已入库'
+            if(s==1) {
+                msg = '审核'
+            }
+            if(this.formData.cat=='采购入库') {
+                this.$axios({
+                    method: 'PATCH',
+                    url: '/api/po',
+                    params: data
+                }).then(res => {
+                    if(res.data=='OK') {
+                        this.$message({ message: '已变更采购单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                    }
+                }).catch(err => {
+                    this.$message({ message: err, type: 'error' })
+                })
+            } else if(this.formData.cat=='生产入库') {
+                this.$axios({
+                    method: 'GET',
+                    url: '/api/producewh',
+                    params: data
+                }).then(res => {
+                    if(res.data=='OK') {
+                        this.$message({ message: '已变更生产入库单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                    }
+                }).catch(err => {
+                    this.submitLoading = false
+                    this.$message({ message: err, type: 'error' })
+                })
+            } else if(this.formData.cat=='销售退货') {
+                this.$axios({
+                    method: 'GET',
+                    url: '/api/so',
+                    params: data
+                }).then(res => {
+                    if(res.data=='OK') {
+                        this.$message({ message: '已变更销售单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                    }
+                }).catch(err => {
+                    this.submitLoading = false
+                    this.$message({ message: err, type: 'error' })
+                })
+            }
         }
     }
 }

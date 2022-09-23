@@ -24,6 +24,7 @@
 7. 单据查找; <https://vxetable.cn/v3/#/table/grid/edit>
 8. 打印模板设置
 9. 物料计划
+10. 当前入库单上级单据整单入库, 允许拆分入库
 
 - 权限
 
@@ -33,6 +34,12 @@
 | others     | R  | all users |
 | others     | CU  | depart users |
 | others     | D  | creator |
+
+- 测试
+
+1. 函数冗余
+2. 增删改查
+3. 状态关联
 
 ## app
 
