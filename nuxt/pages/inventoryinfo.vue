@@ -1,0 +1,370 @@
+<template>
+    <div>
+        <vxe-toolbar>
+          <template #buttons>
+            <vxe-button icon="vxe-icon-square-plus" @click="insertEvent()">新增</vxe-button>
+          </template>
+        </vxe-toolbar>
+        <vxe-table
+            border
+            stripe
+            resizable
+            show-overflow
+            ref="xTable"
+            height="500"
+            :row-config="{isHover: true}"
+            :data="tableList"
+            @cell-dblclick="cellDBLClickEvent">
+            <vxe-column field="pn" title="料号" width="120"></vxe-column>
+            <vxe-column field="size" title="尺寸" width="200"></vxe-column>
+            <vxe-column field="volume" title="体积" width="120"></vxe-column>
+            <vxe-column field="netw" title="净重" width="300"></vxe-column>
+            <vxe-column field="grossw" title="毛重" width="200"></vxe-column>
+            <vxe-column field="created" title="创建人" show-overflow width="90"></vxe-column>
+            <vxe-column field="createdat" title="创建时间" show-overflow :visible="false"></vxe-column>
+            <vxe-column field="edited" title="编辑人" show-overflow width="90"></vxe-column>
+            <vxe-column field="editedat" title="编辑时间" show-overflow :visible="false"></vxe-column>
+            <vxe-column field="audited" title="审核人" show-overflow width="90"></vxe-column>
+            <vxe-column field="auditedat" title="审核时间" :visible="false"></vxe-column>
+        </vxe-table>
+
+        <vxe-modal v-model="showEdit" :title="selectRow ? '编辑&保存' : '新增&保存'" width="800" min-width="600" min-height="600" :loading="submitLoading" resize destroy-on-close>
+            <template #default>
+                <vxe-form :data="formData" :rules="formRules" title-align="right" title-width="100" @submit="saveEvent">
+                    <vxe-form-item title="基本信息" title-align="left" :title-width="200" :span="24" :title-prefix="{icon: 'vxe-icon-comment'}"></vxe-form-item>
+                    <vxe-form-item field="pn" title="料号" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.pn" placeholder="请输入料号" :readonly="selectRow==null?false:true" @change="getInventoryInfo()"></vxe-input>
+                    </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="name" title="品名" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.name" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="model" title="型号" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.model" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="namedesc" title="品名描述" :span="12" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.namedesc" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="size" title="尺寸" :span="12" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.size" placeholder="单位cm, 例: 26*38*10" @change="getVolume()"></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="volume" title="体积" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.volume" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="netw" title="净重" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.netw" placeholder="请输入净重, 单位kg"></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="grossw" title="毛重" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.grossw" placeholder="请输入毛重, 单位kg"></vxe-input>
+                        </template>
+                    </vxe-form-item> 
+                    <vxe-form-item :span="24">
+                        <template #default="{}">
+                            <div style="border-bottom: 1px lightgray solid "></div>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="created" title="创建人" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.created" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="createdat" title="创建时间" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.createdat" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="edited" title="编辑人" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.edited" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="editedat" title="编辑时间" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.editedat" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="audited" title="审核人" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.audited" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item field="auditedat" title="审核时间" :span="8" :item-render="{}">
+                        <template #default="{ data }">
+                            <vxe-input v-model="data.auditedat" readonly></vxe-input>
+                        </template>
+                    </vxe-form-item>
+                    <vxe-form-item align="center" title-align="left" :span="24">
+                        <template #default>
+                            <vxe-button type="submit">提交</vxe-button>
+                            <vxe-button @click="auditEvent()">{{auditBtn}}</vxe-button>
+                            <vxe-button @click="deleteEvent()">删除</vxe-button>
+                        </template>
+                    </vxe-form-item>
+                </vxe-form>
+            </template>
+        </vxe-modal>
+    </div>
+
+</template>
+
+<script>
+
+export default {
+    data() {
+        return {
+            tableData: [],
+            tableList: [],
+            formData: {
+                pn: null,
+                name: null,
+                model: null,
+                namedesc: null,
+                size: null,
+                volume: null,
+                netw: null,
+                grossw: null,
+                created: null,
+                createdat: null,
+                edited: null,
+                editedat: null,
+                audited: null,
+                auditedat: null
+            },
+            formDataTemp: null,
+            formRules: {
+                pn: [
+                    { required: true, message: '请输入料号' },
+                    { min: 9, max: 9, message: '长度限制 9 个字符' }
+                ],
+                size: [
+                    { required: true, message: '单位cm, 例: 26*38*10' },
+                    {
+                        validator ({ itemValue }) {                            
+                            var pattern = /^[0-9]*\*[0-9]*\*[0-9]*$/ 
+                            if(!pattern.test(itemValue)) {
+                                return new Error('尺寸由数字和*组成')
+                            }
+                        }
+                    }
+                ],
+                netw: [
+                    { required: true, message: '请输入净重, 单位kg' },
+                    { min: 0.0001 }
+                ],
+                grossw: [
+                    { required: true, message: '请输入毛重, 单位kg' },
+                    { min: 0.00002 }
+                ]
+            }, 
+            selectRow: null,
+            filterName: '',
+            showEdit: false,
+            departsList: [],
+            submitLoading: false,
+            inventory: []
+        }
+    },
+    computed: {
+        auditBtn() {
+            return this.formData.audited ? '弃审' : '审核'
+        }  
+    },
+    mounted() {
+        this.$axios({
+            method: 'GET',
+            url: '/api/inventoryinfo'
+        }).then(res => {
+            this.tableList = res.data['inventoryinfo']
+            this.tableData = res.data['inventoryinfo']
+        }).catch(err => {
+            this.$message({ message: err, type: 'error' })
+        })
+        this.$axios({
+            method: 'GET',
+            url: '/api/inventory'
+        }).then(res => {
+            this.inventory = res.data['inventory']
+        }).catch(err => {
+            this.$message({ message: err, type: 'error' })
+        })
+    },
+    methods : {
+        insertEvent() {
+            this.formData = {
+                pn: null,
+                name: null,
+                model: null,
+                namedesc: null,
+                manufact: null,
+                created: this.$store.state.user.name,
+                createdat: new Date().toLocaleString('chinese', { hour12: false }),
+                edited: null,
+                editedat: null,
+                audited: null,
+                auditedat: null,
+                status: 0,
+                deactivateat: null
+            }                
+            this.selectRow = null
+            this.showEdit = true
+        },
+        cellDBLClickEvent({ row }) {
+            this.formData = {
+                pn: row.pn,
+                size: row.size,
+                volume: row.volume,
+                netw: row.netw,
+                grossw: row.grossw,
+                created: row.created,
+                createdat: row.createdat,
+                edited: row.edited,
+                editedat: row.editedat,
+                audited: row.audited,
+                auditedat: row.auditedat
+            }
+            this.getInventoryInfo()
+            this.selectRow = row
+            this.showEdit = true
+            this.formDataTemp = JSON.stringify(this.formData)
+        },
+        saveEvent() {
+            this.submitLoading = true
+            var $table = this.$refs.xTable
+            if(!this.valiteW()) { return }
+            if (this.selectRow) {
+                if(this.formDataTemp==this.formData) {
+                    this.$message({ message: '数据未修改, 此次未提交'})
+                    return
+                }
+                this.formData.edited = this.$store.state.user.name
+                this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })
+                var w = { pn: null }, v = JSON.parse(JSON.stringify(this.formData))
+                w['pn'] = this.formData['pn']
+                delete v['pn']
+                this.$axios({
+                    method: 'PATCH',
+                    url: '/api/inventoryinfo',
+                    params: { w: w, v: v }
+                }).then(res => {
+                    this.submitLoading = false
+                    if(res.data=='OK') {
+                        this.showEdit = false
+                        this.$message({ message: '保存成功', type: 'success' })
+                        Object.assign(this.selectRow, this.formData)
+                    }
+                }).catch(err => {
+                    this.submitLoading = false
+                    this.$message({ message: err, type: 'error' })
+                })
+            } else {
+                this.tableData.forEach(item => {
+                    if(this.formData.pn==item.pn) {
+                        this.$message({ message: '料号重复', type: 'error' })
+                        this.submitLoading = false
+                        return
+                    }
+                })
+                this.$axios({
+                    method: 'POST',
+                    url: '/api/inventoryinfo',
+                    data: [this.formData]
+                }).then(res => {
+                    this.submitLoading = false
+                    if(res.data=='OK') {
+                        this.showEdit = false
+                        this.$message({ message: '保存成功', type: 'success' })
+                        $table.insert(this.formData)  
+                    }
+                }).catch(err => {
+                    this.submitLoading = false
+                    this.$message({ message: err, type: 'error' })
+                })
+            }
+        },
+        auditEvent() {
+            this.formData.audited = this.$store.state.user.name
+            this.formData.auditedat = new Date().toLocaleString('chinese', { hour12: false })
+            this.saveEvent()
+        },
+        deleteEvent() {
+            this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                var k = { pn: null }
+                k['pn'] = this.formData.pn
+                this.$axios({
+                    method: 'DELETE',
+                    url: '/api/inventoryinfo',
+                    params: k
+                }).then(res => {
+                    this.submitLoading = false
+                    if(res.data=='OK') {
+                        this.showEdit = false
+                        this.$refs.xTable.remove(this.selectRow)
+                        this.$message({ message: '删除成功', type: 'success' })
+                    }
+                }).catch(err => {
+                    this.submitLoading = false
+                    this.$message({ message: err, type: 'error' })
+                })
+            })
+        },
+        getVolume() {
+            if(this.formData.size) {
+                var pattern = /^[0-9]*\*[0-9]*\*[0-9]*$/, v = 1, arr = this.formData.size.match(/[0-9]+/g)
+                if(!pattern.test(this.formData.size)) {
+                    return
+                }
+                arr.forEach(item => {
+                    v = Number(item) * v
+                }) 
+                this.formData.volume = v / 1000000
+            }
+        },
+        valiteW() {
+            if(Number(this.formData.netw)>Number(this.formData.grossw)) {
+                this.$message({ message: '毛重不得大于净重', type: 'error' })
+                this.formData.grossw = null
+                return false
+            }
+            return true
+        },
+        getInventoryInfo() {
+            if(this.formData.pn.length==9) {
+                this.inventory.forEach(item => {
+                    if(item.pn==this.formData.pn) {
+                        this.formData.name = item.name
+                        this.formData.model = item.model
+                        this.formData.namedesc = item.namedesc
+                        return
+                    }
+                })
+                if(!this.formData.name) {
+                    this.formData.pn = null
+                    this.$message({ message: '料号不存在', type: 'error' })
+                }
+            } else {
+                this.formData.name = null
+                this.formData.model = null
+                this.formData.namedesc = null
+            }
+        }
+    }
+}
+</script>

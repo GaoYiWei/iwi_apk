@@ -1,0 +1,170 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('exp:server');
+var http = require('http');
+
+/**
+ * Get orderid.
+ */
+const sequelize = require('../utils/mysql')
+const redisClient = require('../utils/redis')
+redisClient.FLUSHALL()
+
+sequelize.orderid(sequelize.partners)
+.then(data => {
+    for(var i=1;i<150;i++) {
+        redisClient.RPUSH('partners', (Array(6).join(0) + (parseInt(data) + i)).slice(-6))
+    }
+})
+.catch(err => {console.log(err)})
+sequelize.orderid(sequelize.po_m)
+.then(data => {
+    for(var i=1;i<150;i++) {    
+        redisClient.RPUSH('po', (Array(10).join(0) + (parseInt(data) + i)).slice(-10))
+    }
+})
+.catch(err => {console.log(err)}) 
+sequelize.orderid(sequelize.receipt_m)
+.then(data => {
+    for(var i=1;i<150;i++) {    
+        redisClient.RPUSH('receipt', (Array(10).join(0) + (parseInt(data) + i)).slice(-10))
+    }
+})
+.catch(err => {console.log(err)}) 
+sequelize.orderid(sequelize.so_m)
+.then(data => {
+    for(var i=1;i<150;i++) {    
+        redisClient.RPUSH('so', (Array(10).join(0) + (parseInt(data) + i)).slice(-10))
+    }
+})
+.catch(err => {console.log(err)}) 
+sequelize.orderid(sequelize.delivery_m)
+.then(data => {
+    for(var i=1;i<150;i++) {    
+        redisClient.RPUSH('delivery', (Array(10).join(0) + (parseInt(data) + i)).slice(-10))
+    }
+})
+.catch(err => {console.log(err)})
+sequelize.orderid(sequelize.transfer_m)
+.then(data => {
+    for(var i=1;i<150;i++) {    
+        redisClient.RPUSH('transfer', (Array(10).join(0) + (parseInt(data) + i)).slice(-10))
+    }
+})
+.catch(err => {console.log(err)}) 
+sequelize.orderid(sequelize.picklist_m)
+.then(data => {
+    for(var i=1;i<150;i++) {    
+        redisClient.RPUSH('picklist', (Array(10).join(0) + (parseInt(data) + i)).slice(-10))
+    }
+})
+.catch(err => {console.log(err)}) 
+sequelize.orderid(sequelize.producewh_m)
+.then(data => {
+    for(var i=1;i<150;i++) {
+        redisClient.RPUSH('producewh', (Array(10).join(0) + (parseInt(data) + i)).slice(-10))
+    }
+})
+.catch(err => {console.log(err)}) 
+sequelize.orderid(sequelize.disassemb_m)
+.then(data => {
+    for(var i=1;i<150;i++) {
+        redisClient.RPUSH('disassemb', (Array(10).join(0) + (parseInt(data) + i)).slice(-10))
+    }
+})
+.catch(err => {console.log(err)})
+sequelize.orderid(sequelize.borrow_m)
+.then(data => {
+    for(var i=1;i<150;i++) {
+        redisClient.RPUSH('borrow', (Array(10).join(0) + (parseInt(data) + i)).slice(-10))
+    }
+})
+.catch(err => {console.log(err)})
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '9999');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+console.log(Date());
+console.log('web端口: ' + port);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
