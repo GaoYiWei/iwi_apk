@@ -895,7 +895,10 @@ const disassemb_c = sequelize.define('disassemb_c', {
         type: DataTypes.STRING(10),
         primaryKey: true
     },
-    cpn: {
+    wh: {
+        type: DataTypes.STRING(20)
+    },
+    pn: {
         type: DataTypes.STRING(9),
         primaryKey: true
     },

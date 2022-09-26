@@ -517,6 +517,8 @@ export default {
                     this.submitLoading = false
                     this.$message({ message: err, type: 'error' })
                 })
+            }).catch(() => {
+                this.ctrlDisabled = btnStatus
             })
         },
         auditEvent() {

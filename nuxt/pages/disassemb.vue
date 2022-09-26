@@ -16,29 +16,29 @@
                     <vxe-input v-model="data.id" readonly></vxe-input>
                 </template>
             </vxe-form-item>
-            <vxe-form-item title="序列/批次" field="sbn" :item-render="{}">
+            <vxe-form-item title="序列" field="sbn" :item-render="{}">
                 <template #default="{ data }">
-                    <vxe-input v-model="data.sbn"></vxe-input>
+                    <vxe-input v-model="data.sbn" @change="getInfo('sbnInput')"></vxe-input>
                 </template>
             </vxe-form-item>
-            <vxe-form-item title="料号" field="pn" :item-render="{}">
-                <template #default="{ data }">
-                    <vxe-input v-model="data.pn" readonly></vxe-input>
+            <vxe-form-item title="料号" :item-render="{}">
+                <template #default="{}">
+                    <vxe-input v-model="info.pn" readonly></vxe-input>
                 </template>
             </vxe-form-item>
-            <vxe-form-item title="品名" field="name" :item-render="{}">
-                <template #default="{ data }">
-                    <vxe-input v-model="data.name" readonly></vxe-input>
+            <vxe-form-item title="品名" :item-render="{}">
+                <template #default="{}">
+                    <vxe-input v-model="info.name" readonly></vxe-input>
                 </template>
             </vxe-form-item>
-            <vxe-form-item title="型号" field="model" :item-render="{}">
-                <template #default="{ data }">
-                    <vxe-input v-model="data.model" readonly></vxe-input>
+            <vxe-form-item title="型号" :item-render="{}">
+                <template #default="{}">
+                    <vxe-input v-model="info.model" readonly></vxe-input>
                 </template>
             </vxe-form-item>
-            <vxe-form-item title="品名描述" field="namedesc" :item-render="{}">
-                <template #default="{ data }">
-                    <vxe-input v-model="data.namedesc" readonly></vxe-input>
+            <vxe-form-item title="品名描述" :item-render="{}">
+                <template #default="{}">
+                    <vxe-input v-model="info.namedesc" readonly></vxe-input>
                 </template>
             </vxe-form-item>
             <vxe-form-item title="备注" field="comment" :item-render="{}">
@@ -48,12 +48,6 @@
             </vxe-form-item>
         </vxe-form>
         <div style="border:1px lightgray solid" :class="{ 'readonly': ctrlDisabled.table }">
-            <vxe-toolbar style="padding-left:10px">
-                <template #buttons>
-                <vxe-button type="text" size="mini" icon="fa vxe-icon-add" @click="insertRowEvent()">新增</vxe-button>
-                <vxe-button type="text" size="mini" icon="fa vxe-icon-delete" @click="$refs.xTable.removeCurrentRow()">删除</vxe-button>
-                </template>
-            </vxe-toolbar>
             <vxe-table
                 border
                 stripe
@@ -64,8 +58,15 @@
                 header-align="center"
                 :row-config="{isHover: true, isCurrent: true, useKey: true}"
                 :data="tableData"
-                :edit-config="{trigger: 'click', mode: 'row'}">
+                :edit-config="{trigger: 'click', mode: 'cell', activeMethod: activeCellMethod}">
                 <vxe-column type="seq" title="序号" width="80"></vxe-column>
+                <vxe-column field="wh" title="仓库" :edit-render="{}" width="120">
+                    <template #edit="{ row }">
+                        <vxe-select v-model="row.wh" type="text">
+                            <vxe-option v-for="item in whList" :value="item" :label="item" :key="row.pn"></vxe-option>
+                        </vxe-select>
+                    </template>
+                </vxe-column>
                 <vxe-column field="pn" title="料号" :edit-render="{name: 'input', props: {type: 'text' }}" width="120"></vxe-column>
                 <vxe-column field="qty" title="数量" :edit-render="{name: 'input', props: {type: 'number'}}" width="120"></vxe-column>
                 <vxe-column field="comment" title="备注" :edit-render="{name: 'input', props: {type: 'text'}}" width="200"></vxe-column>
@@ -131,6 +132,7 @@ import { mapState } from 'vuex'
 export default {
     data() {
         return {
+            whList: [],
             formData: {
                 id: null,
                 sbn: null,
@@ -147,8 +149,15 @@ export default {
                     { required: true, message: '请输入序列/批次' }
                 ]
             },
+            info: {
+                pn: null,
+                name: null,
+                model: null,
+                namedesc: null
+            },
             dataTemp: null,
             tableData: [],
+            bomList: [],
             isEdit: false,
             searchVal: '',
             ctrlDisabled: {
@@ -167,6 +176,23 @@ export default {
         }
     },
     mounted() {
+        this.$axios({
+            method: 'GET',
+            url: '/api/whs'
+        }).then(res => {
+            res.data['whs'].forEach(item => {
+                if(item.status==1) {
+                    this.whList.push(item.name)
+                }
+            })
+            if(this.whList.length==0) {
+                this.$message({ message: '没有找到可用仓库', type: 'warning' })
+                return
+            }
+        }).catch(err => {
+            this.submitLoading = false
+            this.$message({ message: err, type: 'error' })
+        })
     },
     methods : {
         enterSearch($event) {
@@ -187,13 +213,14 @@ export default {
                     url: '/api/disassemb',
                     params: { id: this.searchVal }
                 }).then(res => {
-                    if(res.data['picklist_m'].length==0) {
+                    if(res.data['disassemb_m'].length==0) {
                         this.$message({ message: '没有找到记录', type: 'warning' })
                         return
                     }
                     this.submitLoading = false
-                    this.formData = res.data['picklist_m'][0]
-                    this.tableData = res.data['picklist_c']
+                    this.formData = res.data['disassemb_m'][0]
+                    this.tableData = res.data['disassemb_c']
+                    this.getInfo()
                     this.ctrlDisabled.saveBtn = true
                     this.ctrlDisabled.auditBtn = false
                     this.ctrlDisabled.table = true
@@ -233,9 +260,6 @@ export default {
                 this.formData = {
                     id: res.data,
                     sbn: null,
-                    name: null,
-                    model: null,
-                    namedesc: null,
                     created: this.$store.state.user.name,
                     createdat: new Date().toLocaleString('chinese', { hour12: false }),
                     edited: null,
@@ -243,6 +267,12 @@ export default {
                     audited: null,
                     auditedat: null,
                     comment: null
+                }
+                this.info = {
+                    pn: null,
+                    name: null,
+                    model: null,
+                    namedesc: null
                 }
                 this.$refs.xTable.remove()
                 for(var i=0;i<10;i++) {
@@ -263,7 +293,7 @@ export default {
             })
         },
         deleteEvent() {
-            var btnStatus = this.ctrlDisabled
+            var btnStatus = this.ctrlDisabled            
             this.$nuxt.$emit('btnCtrl', 'delete', res => {
                 this.ctrlDisabled = res
             })
@@ -284,9 +314,6 @@ export default {
                         this.formData = {
                             id: null,
                             sbn: null,
-                            name: null,
-                            model: null,
-                            namedesc: null,
                             comment: null,
                             created: null,
                             createdat: null,
@@ -295,8 +322,19 @@ export default {
                             audited: null,
                             auditedat: null
                         }
+                        this.info = {
+                            pn: null,
+                            name: null,
+                            model: null,
+                            namedesc: null
+                        }
                         this.$refs.xTable.remove()
                         this.$message({ message: '删除成功', type: 'success' })
+                        this.$axios({
+                            method: 'DELETE',
+                            url: '/api/sbntrace',
+                            data: {sbn:this.formData.sbn,cat:'拆解',orderid:this.formData.id}
+                        })
                     } else {
                         this.ctrlDisabled = btnStatus
                     }
@@ -305,6 +343,8 @@ export default {
                     this.submitLoading = false
                     this.$message({ message: err, type: 'error' })
                 })
+            }).catch(() => {
+                this.ctrlDisabled = btnStatus
             })
         },
         auditEvent() {
@@ -364,6 +404,7 @@ export default {
                             url: '/api/disassemb',
                             data: data
                         }).then(res => {
+                            console.log(res)
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
@@ -385,6 +426,11 @@ export default {
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
+                                this.$axios({
+                                    method: 'POST',
+                                    url: '/api/sbntrace',
+                                    data: [{sbn:this.formData.sbn,cat:'拆解',orderid:this.formData.id,qty:1,created:this.formData.created,createdat:this.formData.createdat}]
+                                })
                             } else {
                                 this.ctrlDisabled = btnStatus
                             }
@@ -399,70 +445,80 @@ export default {
             })
         },
         getData() {
-            var res=[[this.formData]], t=[], t1={id: this.formData.id}, r={}, tableData=this.$refs.xTable.getTableData().tableData
+            var res=[[this.formData]], t=[], t1={id: this.formData.id}, r={}, tableData=this.$refs.xTable.getTableData().tableData       
             for(var i=0;i<tableData.length;i++) {
-                if(tableData[i].pn && tableData[i].qty>0) {     
+                if(!tableData[i].wh) {
+                    this.$message({ message: tableData[i].pn + '未选择仓库', type: 'error' })
+                    return    
+                }
+                if(tableData[i].qty>=0) {     
                     r={}
                     t.push(Object.assign(r, t1, tableData[i]))
-                } else if(tableData[i].pn && !tableData[i].qty || tableData[i].pn && tableData[i].qty<=0) {
+                } else if(!tableData[i].qty || tableData[i].qty<0) {
                     this.$message({ message: tableData[i].pn + '未填写有效数量', type: 'error' })
                     return
                 }
-            }
-            if(t.length==0) {
-                this.$message({ message: '未填写领料明细', type: 'error' })
-                return
+                for(var j=0;j<this.bomList.length;j++) {
+                    if(this.bomList[j].pn==tableData[i] && tableData[i].qty>this.bomList[j].qty) {
+                        this.$message({ message: tableData[i].pn + '未填写有效数量', type: 'error' })
+                        return
+                    }
+                }
             }
             res.push(t)
             return res
         },
+        getInfo(trigger) {
+            if(this.formData.sbn && this.formData.sbn.length==18 && this.inventory[this.formData.sbn.slice(0,9)]) {
+                this.submitLoading = true
+                this.info.pn = this.formData.sbn.slice(0,9)
+                this.info.name = this.inventory[this.formData.sbn.slice(0,9)].name
+                this.info.model = this.inventory[this.formData.sbn.slice(0,9)].model
+                this.info.namedesc = this.inventory[this.formData.sbn.slice(0,9)].namedesc
+                if(trigger=='sbnInput') {
+                    this.$axios({
+                        method: 'GET',
+                        url: '/api/bom',
+                        params: { pn: this.info.pn }
+                    }).then(res => {
+                        this.tableData = []
+                        this.submitLoading = false
+                        this.bomList = res.data['bom_c']
+                        res.data['bom_c'].forEach(item => {
+                            this.tableData.push({pn: item.cpn, qty: item.qty})
+                        })
+                    }).catch(err => {
+                        this.ctrlDisabled = btnStatus
+                        this.submitLoading = false
+                        this.$message({ message: err, type: 'error' })
+                    })
+                }
+            } else {
+                this.$message({ message: '无效的序列号', type: 'warning' })
+                this.formData.sbn = null
+            }
+        },
         getName(row) {
             if(!row.pn) { return }
-            if(this.inventory[row.pn]) {
-                var records = this.$refs.xTable.getTableData().tableData
-                for(var i=0;i<records.length;i++) {
-                    if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
-                    if(row.pn==records[i].pn) {
-                        this.$message({ message: '重复添加', type: 'warning' })
-                        records[i].pn = null
-                        records[i].qty = null
-                        return
-                    }                  
-                }
-                return this.inventory[row.pn].name
-            } else {
-                this.$message({ message: '料号不存在, 请刷新页面再试', type: 'warning' })
-                row.qty = null
-                row.pn = null
-                return
-            }
+            return this.inventory[row.pn].name
         },
         getModel(row) {
             if(!row.pn) { return }
-            if(this.inventory[row.pn]) {
-                return this.inventory[row.pn].model
-            } else {
-                return null
-            }
+            return this.inventory[row.pn].model
         },
         getNamedesc(row) {
             if(!row.pn){ return }
-            if(this.inventory[row.pn]) {
-                return this.inventory[row.pn].namedesc
-            } else {
-                return null
-            }
+            return this.inventory[row.pn].namedesc
         },
         getManufact(row) {
             if(!row.pn){ return }
-            if(this.inventory[row.pn]) {
-                return this.inventory[row.pn].manufact
-            } else {
-                return null
-            }
+            return this.inventory[row.pn].manufact
         },
-        insertRowEvent() {
-            this.$refs.xTable.insertAt({},-1)
+        activeCellMethod({ columnIndex }) {
+            if (columnIndex==2) {
+                return false
+            }
+            return true
         }
     }
 }
