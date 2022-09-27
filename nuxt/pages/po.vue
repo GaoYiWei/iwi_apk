@@ -18,7 +18,7 @@
             </vxe-form-item>
             <vxe-form-item title="合同" field="contract" :item-render="{}">
                 <template #default="{ data }">
-                    <vxe-input v-model="data.contract"></vxe-input>
+                    <vxe-input v-model="data.contract" @blur="validContract()"></vxe-input>
                 </template>
             </vxe-form-item>
             <vxe-form-item title="发货时间" field="deliverat"  :item-render="{}">
@@ -283,7 +283,8 @@ export default {
             showAddrForm: false,
             provinceList: [],
             vendorList: [],
-            cneeList: {}
+            cneeList: {},
+            contractList: []
         }
     },
     computed: {
@@ -296,7 +297,7 @@ export default {
             } else if(this.formData.status==-1) {
                 return '已入库'
             } else {
-                return '有退货'
+                return '部分入库'
             }
         },
         auditBtn() {
@@ -461,6 +462,18 @@ export default {
         async insertEvent() {
             this.searchVal = null
             this.submitLoading = true
+            this.$axios({
+                method: 'GET',
+                url: '/api/po'
+            }).then(res => {
+                res.data['po_m'].forEach(item => {
+                    if(item.cat=='采购') {
+                        this.contractList.push(item.contract)
+                    }
+                })
+            }).catch(err => {
+                this.$message({ message: err, type: 'error' })
+            })
             if(this.isEdit){
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
@@ -499,7 +512,7 @@ export default {
                 }
                 this.$refs.xTable.remove()
                 for(var i=0;i<10;i++) {
-                    this.$refs.xTable.insert({status: true})
+                    this.$refs.xTable.insert({})
                 }
                 this.$nuxt.$emit('btnCtrl', 'add', res => {
                     this.ctrlDisabled = res
@@ -723,6 +736,13 @@ export default {
         },
         insertRowEvent() {
             this.$refs.xTable.insertAt({},-1)
+        },
+        validContract() {
+            console.log(this.contractList.indexOf(this.formData.contract))
+            if(this.contractList.indexOf(this.formData.contract)>=0) {
+                this.formData.contract = null
+                this.$message({ message: '合同号已存在', type: 'warning' })
+            }
         }
     }
 }

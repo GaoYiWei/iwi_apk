@@ -3,6 +3,7 @@
 
 - [web端](#web端)
   - [环境](#环境)
+  - [业务逻辑](#业务逻辑)
   - [编码](#编码)
   - [初始化](#初始化)
     - [数据库](#数据库)
@@ -13,6 +14,11 @@
 ## 环境
 
 1. MySQL & redis & nodejs
+
+## 业务逻辑
+
+1. 入库单: 采购入库可分批, 其余认定一次性入库
+2. 出库单: 销售出库可分批, 其余认定一次性出库
 
 ## 编码
 
@@ -48,7 +54,47 @@
 
 6. 注释express/db/mysql.js第1055~1060行取消同步, express/bin/www.js第14~87行取消注释
 7. 创建存储过程, 根据需要修改DEFINER(需具有创建存储过程权限)
-   - 获取BOM层级
+   - 获取采购未入库数量
+
+    ```sql
+    CREATE DEFINER=`sa`@`%` PROCEDURE `pounshiped`(in id varchar(10))
+    BEGIN
+            SELECT p.pn, p.qty-IFNULL(d.delivery,0) AS todelivery FROM
+            (SELECT pn, qty FROM `po_c` WHERE id=id) AS p LEFT JOIN 
+            (SELECT pn, SUM(qty) AS delivery FROM `receipt_c` WHERE id IN (SELECT id FROM `receipt_m` WHERE superiorid=id AND cat='采购入库')) AS d 
+            ON p.pn=d.pn;
+    END
+    ```
+
+   - 获取销售未出库数量
+
+    ```sql
+    CREATE DEFINER=`sa`@`%` PROCEDURE `sounshiped`(in orderid varchar(10))
+    BEGIN
+            SELECT p.created,p.createdat,mcomment,ccomment,p.pn, p.qty-IFNULL(d.delivery,0) AS qty FROM
+            (SELECT created,createdat,`so_m`.comment AS mcomment,`so_c`.comment AS ccomment,pn, qty FROM `so_c` LEFT JOIN `so_m` ON `so_c`.id=`so_m`.id WHERE `so_m`.id=orderid) AS p LEFT JOIN 
+            (SELECT pn, SUM(qty) AS delivery FROM `delivery_c` WHERE id IN (SELECT id FROM `delivery_m` WHERE superiorid=orderid AND cat='销售出库')) AS d 
+            ON p.pn=d.pn 
+            WHERE p.qty>IFNULL(d.delivery,0);
+    END
+    ```
+
+    - 获取库存
+
+    ```sql
+    CREATE DEFINER=`sa`@`%` PROCEDURE `getstock`()
+    BEGIN 
+        DROP TABLE IF EXISTS stock;
+        CREATE TEMPORARY TABLE stock(SELECT i.wh,i.pn,i.name,i.model,i.namedesc,IFNULL(inwh.inwh,0) - IFNULL(outwh.outwh,0) AS stock FROM (SELECT whs.id AS whid,whs.name AS wh,pn,inventory.name,model,namedesc FROM inventory CROSS JOIN whs WHERE whs.status=1) AS i LEFT JOIN (SELECT pn,wh,SUM(qty) AS inwh FROM receipt_c LEFT JOIN receipt_m ON receipt_c.id = receipt_m.id WHERE receipt_m.audited IS NOT NULL GROUP BY wh,pn) AS inwh ON i.pn = inwh.pn AND i.wh = inwh.wh LEFT JOIN (SELECT pn,wh,SUM(qty) AS outwh FROM delivery_c LEFT JOIN delivery_m ON delivery_c.id = delivery_m.id WHERE delivery_m.audited IS NOT NULL GROUP BY wh,pn) AS outwh ON i.pn = outwh.pn AND i.wh = outwh.wh);
+        DROP TABLE IF EXISTS toin;
+        CREATE TEMPORARY TABLE toin(SELECT pn,wh,SUM(qty) AS inwh FROM receipt_c LEFT JOIN receipt_m ON receipt_c.id = receipt_m.id WHERE receipt_m.audited IS NULL GROUP BY wh,pn);
+        DROP TABLE IF EXISTS toout;
+        CREATE TEMPORARY TABLE toout(SELECT pn,wh,SUM(qty) AS outwh FROM delivery_c LEFT JOIN delivery_m ON delivery_c.id = delivery_m.id WHERE delivery_m.audited IS NULL GROUP BY wh,pn);
+        SELECT s.wh,s.pn,s.name,s.model,s.namedesc,s.stock,IFNULL(inwh,0) AS inwh,IFNULL(outwh,0) AS outwh FROM stock AS s LEFT JOIN toin ON s.wh = toin.wh AND s.pn = toin.pn LEFT JOIN toout ON s.wh = toout.wh AND s.pn = toout.pn ORDER BY s.wh,s.pn;
+    END
+    ```
+
+    - 获取BOM层级
 
     ```sql
     CREATE DEFINER=`sa`@`%` PROCEDURE `updatebomlevel`()
@@ -67,7 +113,7 @@
     END
     ```
 
-   - 更新物料使用状态
+    - 更新物料使用状态
 
     ```sql
     CREATE DEFINER=`sa`@`%` PROCEDURE `updatepnstatus`()

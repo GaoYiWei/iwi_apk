@@ -151,6 +151,21 @@ router.get('/id', (req, res) => {
     })  
 })
 
+const  sequelize = require('../utils/mysql')
+router.get('/call',(req, res) => {
+    if(req.query.proc.substring(0,4)!='CALL') {
+        res.sendStatus(403)
+        return
+    }
+    sequelize.call(req.query.proc).then(data => {
+        res.send(data)
+    })
+    .catch(err => {
+        console.log(err)
+        res.sendStatus(500)
+        return
+    })
+})
 
 
 module.exports = router;

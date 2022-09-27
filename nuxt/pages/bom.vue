@@ -271,7 +271,7 @@ export default {
             }
             this.$refs.xTable.remove()
             for(var i=0;i<10;i++) {
-                this.$refs.xTable.insert({status: true})
+                this.$refs.xTable.insert({})
             }            
         },
         editEvent() {

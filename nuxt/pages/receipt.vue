@@ -283,29 +283,28 @@ export default {
                 return
             }
             this.submitLoading = true
+            var proc='CALL'
             if(this.formData.cat=='采购入库') {
+                proc = proc + ' pounshiped("' + this.modalSearchVal + '");'
                 this.$axios({
                     method: 'GET',
-                    url: '/api/po',
-                    params: { id: this.modalSearchVal }
+                    url: '/api/call',
+                    params: { proc: proc }
                 }).then(res => {
-                    if(res.data['po_m'].length==0) {
+                    if(Object.keys(res.data).length>0) {
+                        this.modalTable = Object.values(res.data)
+                        this.modalFormData['id'] = this.modalSearchVal
+                        this.modalFormData['created'] = Object.values(res.data)[0]['created']
+                        this.modalFormData['createdat'] = Object.values(res.data)[0]['createdat']
+                        this.modalFormData['comment'] = Object.values(res.data)[0]['mcomment']
+                    } else {
+                        this.modalTable = []
+                        this.modalFormData['id'] = null
+                        this.modalFormData['created'] = null
+                        this.modalFormData['createdat'] = null
+                        this.modalFormData['comment'] = null
                         this.$message({ message: '没有找到记录', type: 'warning' })
-                        return
                     }
-                    if(!res.data['po_m'][0]['audited']) {
-                        this.$message({ message: '当前采购单未审核', type: 'warning' })
-                        return
-                    }
-                    if(res.data['po_m'][0]['status']==-1) {
-                        this.$message({ message: '当前采购单已入库', type: 'warning' })
-                        return
-                    }
-                    this.modalTable = res.data['po_c']
-                    this.modalFormData['id'] = res.data['po_m'][0]['id']
-                    this.modalFormData['created'] = res.data['po_m'][0]['created']
-                    this.modalFormData['createdat'] = res.data['po_m'][0]['createdat']
-                    this.modalFormData['comment'] = res.data['po_m'][0]['comment']
                     this.submitLoading = false
                 }).catch(err => {
                     this.submitLoading = false
@@ -353,7 +352,6 @@ export default {
                         this.$message({ message: '当前销售单已入库', type: 'warning' })
                         return
                     }
-                    producewh_m
                     this.modalTable = res.data['so_c']
                     this.modalFormData['id'] = res.data['so_m'][0]['id']
                     this.modalFormData['created'] = res.data['so_m'][0]['created']

@@ -29,7 +29,7 @@ app.all('*',function (req,res,next) {
 
 // 404
 const fs = require('fs');
-var routes_list = ['/login', '/', '/id', '/reset','/addr']
+var routes_list = ['/login', '/', '/id', '/reset','/addr','/call']
 fs.readdirSync('./routes/').forEach(file => {
     routes_list.push('/' + file.replace('.js',''))
 });
@@ -46,7 +46,7 @@ const white_list = ['/login', '/', '/reset'];
 const jsonwebtoken = require('./utils/token');
 
 app.use((req, res, next) => {    
-    if(!white_list.includes(req.url.indexOf('?') == -1 ? req.url : req.url.substring(0, req.url.indexOf('?')))) {
+    if(!white_list.includes(req.url.indexOf('?') == -1 ? req.url : req.url.substring(0, req.url.indexOf('?')))) {        
         jsonwebtoken.verifyToken(req.headers.authorization).then(res => {
             next()
         }).catch(err => {
@@ -70,13 +70,14 @@ app.use(function(req, res, next) {
 
 // error handler
 app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+    // set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+    // render the error page
+    res.status(err.status || 500);
+    console.log('errrrrrr')
+    res.render('error');
 });
 
 module.exports = app;

@@ -720,9 +720,6 @@ const transfer_m = sequelize.define('transfer_m',{
     },
     auditedat: {
         type: DataTypes.DATE
-    },
-    status: {
-        type: DataTypes.BOOLEAN
     }
 }, {
     freezeTableName: true,
