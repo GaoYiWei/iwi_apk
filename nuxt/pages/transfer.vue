@@ -307,6 +307,7 @@ export default {
                         }
                         this.$refs.xTable.remove()
                         this.$message({ message: '删除成功', type: 'success' })
+                        this.deleteIO()
                     } else {
                         this.ctrlDisabled = btnStatus
                     }
@@ -353,9 +354,12 @@ export default {
                 this.submitLoading = false
                 if(res.data=='OK') {
                     this.$message({ message: msg, type: 'success' })
+                    if(!this.formData.audited) {
+                        this.createIO()
+                    }
                     this.formData.audited = audited
                     this.formData.auditedat = auditedat
-                    this.formData.status = status
+                    this.formData.status = status                    
                 } else {
                     this.ctrlDisabled = btnStatus
                 }
@@ -512,13 +516,21 @@ export default {
             }
         },
         createIO() {
-            var receipt_id, delivery_id, data
+            var receipt_data, delivery_data, data=this.$refs.xTable.getTableData().tableData
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
                 params: {id: 'receipt'}
             }).then(res => {
-                receipt_id = res.data
+                receipt_data = [[{
+                    id: res.data,
+                    cat: '调拨入库',
+                    wh: this.formData.iwh,
+                    superiorid: this.formData.id,
+                    comment: this.formData.comment,
+                    created: this.formData.created,
+                    createdat: this.formData.createdat
+                }], data]
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
@@ -527,14 +539,22 @@ export default {
                 url: '/api/id',
                 params: {id: 'delivery'}
             }).then(res => {
-                delivery_id = res.data
+                delivery_data = [[{
+                    id: res.data,
+                    cat: '调拨入库',
+                    wh: this.formData.owh,
+                    superiorid: this.formData.id,
+                    comment: this.formData.comment,
+                    created: this.formData.created,
+                    createdat: this.formData.createdat
+                }], data]
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
             this.$axios({
                 method: 'POST',
                 url: '/api/delivery',
-                data: data
+                data: delivery_data
             }).then(res => {
                 if(res.data=='OK') {
                     this.$message({ message: '已生成出库单', type: 'success' })
@@ -545,11 +565,35 @@ export default {
             this.$axios({
                 method: 'POST',
                 url: '/api/receipt',
-                data: data
+                data: receipt_data
+            }).then(res => {
+                if(res.data=='OK') {
+                    this.$message({ message: '已生成入库单', type: 'success' })
+                }
+            }).catch(err => {
+                this.$message({ message: err, type: 'error' })
+            })
+        },
+        deleteIO() {
+            this.$axios({
+                method: 'DELETE',
+                url: '/api/receipt',
+                params: { id: this.formData.id }
             }).then(res => {
                 this.submitLoading = false
                 if(res.data=='OK') {
-                    this.$message({ message: '保存成功', type: 'success' })
+                    this.$message({ message: '入库单删除成功', type: 'success' })
+                }
+            }).catch(err => {
+                this.$message({ message: err, type: 'error' })
+            })
+            this.$axios({
+                method: 'DELETE',
+                url: '/api/delivery',
+                params: { id: this.formData.id }
+            }).then(res => {
+                if(res.data=='OK') {
+                    this.$message({ message: '出库单删除成功', type: 'success' })
                 }
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
