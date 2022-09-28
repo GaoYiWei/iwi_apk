@@ -17,7 +17,7 @@
             :data="tableList"
             @cell-dblclick="cellDBLClickEvent">
             <vxe-column field="id" title="ID" :formatter="['formatID', 6]" width="80"></vxe-column>
-            <vxe-column field="name" title="名称"></vxe-column>
+            <vxe-column field="name" title="名称" width="400"></vxe-column>
             <vxe-column field="abbr" title="简称" width="120"></vxe-column>
             <vxe-column field="liaision" title="联系人" width="80"></vxe-column>
             <vxe-column field="tel" title="电话" width="120"></vxe-column>
@@ -30,10 +30,8 @@
             <vxe-column field="createdat" title="创建时间" show-overflow :visible="false"></vxe-column>
             <vxe-column field="edited" title="编辑人" show-overflow width="90"></vxe-column>
             <vxe-column field="editedat" title="编辑时间" show-overflow :visible="false"></vxe-column>
-            <vxe-column field="audited" title="审核人" show-overflow width="90"></vxe-column>
-            <vxe-column field="auditedat" title="审核时间" :visible="false"></vxe-column>
             <vxe-column field="status" title="状态" formatter="formatStatus" show-overflow width="60"></vxe-column>
-            <vxe-column field="deactivateat" title="停用时间" :visible="false"></vxe-column>
+            <vxe-column field="deactivateat" title="停用时间"></vxe-column>
         </vxe-table>
 
         <vxe-modal v-model="showEdit" :title="selectRow ? '编辑&保存' : '新增&保存'" width="800" min-width="600" min-height="300" :loading="submitLoading" resize destroy-on-close>
@@ -131,22 +129,11 @@
                             <vxe-input v-model="data.editedat" readonly></vxe-input>
                         </template>
                     </vxe-form-item>
-                    <vxe-form-item field="audited" title="审核人" :span="8" :item-render="{}">
-                        <template #default="{ data }">
-                            <vxe-input v-model="data.audited" readonly></vxe-input>
-                        </template>
-                    </vxe-form-item>
-                    <vxe-form-item field="auditedat" title="审核时间" :span="8" :item-render="{}">
-                        <template #default="{ data }">
-                            <vxe-input v-model="data.auditedat" readonly></vxe-input>
-                        </template>
-                    </vxe-form-item>
                     <vxe-form-item align="center" title-align="left" :span="24">
                         <template #default>
                             <vxe-button type="submit">提交</vxe-button>
-                            <vxe-button @click="auditEvent()">{{auditBtn}}</vxe-button>
-                            <vxe-button @click="banEvent()">{{banBtn}}</vxe-button>
-                            <vxe-button @click="deleteEvent()">删除</vxe-button>
+                            <vxe-button @click="banEvent()" :disabled="isEdit?false:true">{{banBtn}}</vxe-button>
+                            <vxe-button @click="deleteEvent()" :disabled="isEdit?false:true">删除</vxe-button>
                         </template>
                     </vxe-form-item>
                 </vxe-form>
@@ -201,8 +188,6 @@ export default {
                 createdat: null,
                 edited: null,
                 editedat: null,
-                audited: null,
-                auditedat: null,
                 status: null,
                 deactivateat: null
             },
@@ -222,11 +207,9 @@ export default {
                     { required: true, message: '请输入联系方式' },
                     {
                         validator ({ itemValue }) {
-                            if(isNaN(itemValue)) {
-                                return new Error('不能含有非数字字符')
-                            }
-                            if(itemValue.toString().length!=11) {
-                                return new Error('长度限制 11 个字符')
+                            var pattern = /^(0\d{2,3}-\d{7,8}(-\d{3,5}){0,1})|(((13[0-9])|(15([0-3]|[5-9]))|(18[0,5-9]))\d{8})$/ 
+                            if(!pattern.test(itemValue)) {
+                                return new Error('联系方式异常')
                             }
                         }
                     }
@@ -241,7 +224,8 @@ export default {
             submitLoading: false,
             filterName: '',
             tableList: [],
-            formDataTemp: null
+            formDataTemp: null,
+            isEdit: false
         }
     },
     mounted() {
@@ -256,9 +240,6 @@ export default {
         })
     },
     computed: {
-        auditBtn() {
-            return this.formData.audited ? '弃审' : '审核'
-        },
         banBtn() {
             return this.formData.status==1 || this.formData.status==-1 ? '停用' : '启用'
         },
@@ -283,13 +264,12 @@ export default {
                 createdat: row.createdat,
                 edited: row.edited,
                 editedat: row.editedat,
-                audited: row.audited,
-                auditedat: row.auditedat,
                 status: row.status,
                 deactivateat: row.deactivateat
             }
             this.selectRow = row
             this.showEdit = true
+            this.isEdit = true
             this.formDataTemp = JSON.parse(JSON.stringify(this.formData))
         },
         insertEvent() {
@@ -313,46 +293,52 @@ export default {
                     createdat: new Date().toLocaleString('chinese', { hour12: false }),
                     edited: null,
                     editedat: null,
-                    audited: null,
-                    auditedat: null,
                     status: 1,
                     deactivateat: null
                 }
                 this.selectRow = null
                 this.showEdit = true
+                this.isEdit = false
             }).catch(err => {
                 this.$message({ message: err, type: 'warning' })
             })
         },
         saveEvent() {
             this.submitLoading = true
-            var $table = this.$refs.xTable
-            if (this.selectRow) {
+            if(this.selectRow) {
                 this.$nuxt.$emit('isEdit', this.formDataTemp, this.formData, res => {
+                    console.log(res)
                     if(!res) {
                         this.$message({ message: '数据未修改, 此次未提交'})
+                        this.submitLoading = false
                         return
+                    } else {
+                        var w={}, v=JSON.parse(JSON.stringify(this.formData))
+                        w['id'] = this.formData['id']
+                        delete v['id']
+                        console.log(this.formData,{ w: w, v: v })
+                        this.formData.edited = this.$store.state.user.name
+                        this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })                        
+                        this.$axios({
+                            method: 'PATCH',
+                            url: '/api/partners',
+                            params: { w: w, v: v }
+                        }).then(res => {
+                            this.submitLoading = false
+                            if(res.data=='OK') {
+                                this.showEdit = false
+                                this.isEdit = false                                
+                                this.$message({ message: '保存成功', type: 'success' })
+                                Object.assign(this.selectRow, this.formData)
+                                this.selectRow = null
+                            } else {
+                                this.$message({ message: res.data, type: 'error' })
+                            }
+                        }).catch(err => {
+                            this.submitLoading = false
+                            this.$message({ message: err, type: 'error' })
+                        })
                     }
-                })
-                var w = { id: null }, v = this.formData
-                w['id'] = this.formData['id']
-                delete v['id']
-                this.formData.edited = this.$store.state.user.name
-                this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })
-                this.$axios({
-                    method: 'PATCH',
-                    url: '/api/partners',
-                    params: { w: w, v: v }
-                }).then(res => {
-                    this.submitLoading = false
-                    if(res.data=='OK') {
-                        this.showEdit = false
-                        this.$message({ message: '保存成功', type: 'success' })
-                        Object.assign(this.selectRow, this.formData)
-                    }
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
                 })
             } else {
                 this.$axios({
@@ -364,7 +350,9 @@ export default {
                     if(res.data=='OK') {
                         this.showEdit = false
                         this.$message({ message: '保存成功', type: 'success' })
-                        $table.insert(this.formData)  
+                        this.$refs.xTable.insert(this.formData)  
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false
@@ -373,34 +361,35 @@ export default {
             }
         },
         deleteEvent() {
-            this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                var k = { id: null }
-                k['id'] = this.formData.id
-                this.$axios({
-                    method: 'DELETE',
-                    url: '/api/partners',
-                    params: k
-                }).then(res => {
-                    this.submitLoading = false
-                    if(res.data=='OK') {
-                        this.showEdit = false
-                        this.$refs.xTable.remove(this.selectRow)
-                        this.$message({ message: '删除成功', type: 'success' })
-                    }
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
+            if(this.formData.status==1||this.formData.status==0) {
+                this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var k = { id: null }
+                    k['id'] = this.formData.id
+                    this.$axios({
+                        method: 'DELETE',
+                        url: '/api/partners',
+                        params: k
+                    }).then(res => {
+                        this.submitLoading = false
+                        if(res.data=='OK') {
+                            this.showEdit = false
+                            this.$refs.xTable.remove(this.selectRow)
+                            this.$message({ message: '删除成功', type: 'success' })
+                        } else {
+                            this.$message({ message: res.data, type: 'error' })
+                        }
+                    }).catch(err => {
+                        this.submitLoading = false
+                        this.$message({ message: err, type: 'error' })
+                    })
                 })
-            })
-        },
-        auditEvent() {
-            this.formData.audited = this.$store.state.user.name
-            this.formData.auditedat = new Date().toLocaleString('chinese', { hour12: false })
-            this.saveEvent()
+            } else {
+                this.$message({ message: '当前记录不可删除', type: 'warning' })
+            }
         },
         banEvent() {
             if(this.formData.status==0){
@@ -417,7 +406,6 @@ export default {
                 this.formData.deactivateat = null
             }
             this.saveEvent()
-            Object.assign(this.selectRow, this.formData)
         },
         searchEvent () {
             // const filterName = XEUtils.toValueString(this.filterName).trim().toLowerCase()

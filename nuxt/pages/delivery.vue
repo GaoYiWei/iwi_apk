@@ -511,6 +511,7 @@ export default {
                         this.$message({ message: '删除成功', type: 'success' })
                         this.updateStatus(1)
                     } else {
+                        this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
                     }
                 }).catch(err => {
@@ -560,6 +561,7 @@ export default {
                     this.formData.auditedat = auditedat
                     this.formData.status = status
                 } else {
+                    this.$message({ message: res.data, type: 'error' })
                     this.ctrlDisabled = btnStatus
                 }
             }).catch(err => {
@@ -596,6 +598,7 @@ export default {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.isEdit = false
                             } else {
+                                this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
                             }
                         }).catch(err => {
@@ -614,6 +617,7 @@ export default {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.updateStatus(-1)
                             } else {
+                                this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
                             }
                         }).catch(err => {
@@ -711,6 +715,8 @@ export default {
                 }).then(res => {
                     if(res.data=='OK') {
                         this.$message({ message: '已变更销售单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.$message({ message: err, type: 'error' })
@@ -723,6 +729,8 @@ export default {
                 }).then(res => {
                     if(res.data=='OK') {
                         this.$message({ message: '已变更生产领料单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false
@@ -736,6 +744,8 @@ export default {
                 }).then(res => {
                     if(res.data=='OK') {
                         this.$message({ message: '已变更采购单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false

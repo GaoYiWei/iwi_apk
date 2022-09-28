@@ -265,6 +265,8 @@ export default {
                         this.showEdit = false
                         this.$message({ message: '保存成功', type: 'success' })
                         Object.assign(this.selectRow, this.formData)
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false
@@ -288,6 +290,8 @@ export default {
                         this.showEdit = false
                         this.$message({ message: '保存成功', type: 'success' })
                         $table.insert(this.formData)  
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false
@@ -318,6 +322,8 @@ export default {
                         this.showEdit = false
                         this.$refs.xTable.remove(this.selectRow)
                         this.$message({ message: '删除成功', type: 'success' })
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false

@@ -1,6 +1,6 @@
 <template>
     <div class="full">
-        <div id="header">
+        <div id="header ">
             <el-menu router mode="horizontal">
                 <el-submenu index="1">
                     <template slot="title">销售管理</template>
@@ -42,6 +42,7 @@
                     <el-menu-item index="partners">合作单位</el-menu-item>
                 </el-submenu>
             </el-menu>
+            <div class="title">{{title}}</div>
             <i class="iconfont icon-yonghu login" @click="showLogin()"></i>
             <el-dialog
                 title="登录"
@@ -137,35 +138,62 @@ export default {
             }
         }
     },
+    computed: {
+        title() {
+            var title
+            if(this.$route.path=='/partners') {
+                title = '合作单位'
+            } else if(this.$route.path=='/bom') {
+                title = 'BOM'
+            } else if(this.$route.path=='/borrow') {
+                title = '借用单'
+            } else if(this.$route.path=='/delivery') {
+                title = '出库单'
+            } else if(this.$route.path=='/departs') {
+                title = '部门列表'
+            } else if(this.$route.path=='/disassemb') {
+                title = '拆解单'
+            } else if(this.$route.path=='/inventory') {
+                title = '物料档案'
+            } else if(this.$route.path=='/inventoryinfo') {
+                title = '物料信息'
+            } else if(this.$route.path=='/partners') {
+                title = '合作商'
+            } else if(this.$route.path=='/picklist') {
+                title = '领料单'
+            } else if(this.$route.path=='/po') {
+                title = '采购单'
+            } else if(this.$route.path=='/producewh') {
+                title = '生产入库单'
+            } else if(this.$route.path=='/receipt') {
+                title = '入库单'
+            } else if(this.$route.path=='/sbntrace') {
+                title = '物料溯源'
+            } else if(this.$route.path=='/so') {
+                title = '销售单'
+            } else if(this.$route.path=='/substitue') {
+                title = '替代料'
+            } else if(this.$route.path=='/transfer') {
+                title = '调拨单'
+            } else if(this.$route.path=='/users') {
+                title = '用户列表'
+            } else if(this.$route.path=='/whs') {
+                title = '仓库列表'
+            } else {
+                title = null
+            }
+            return title
+        }
+    },
     mounted() {
         if(localStorage.getItem('user')) {
             this.$store.commit('setUser', JSON.parse(localStorage.getItem('user')))
-            var d = JSON.parse(localStorage.getItem('user'))['depart']
-            if(d=='采购部') {
-                this.$router.push({ name: 'po' })
-            } else if(d=='生产部') {
-                this.$router.push({ name: 'picklist' })
-            } else if(d=='仓储部') {
-                this.$router.push({ name: 'receipt' })
-            }
+            this.getInventory()
         } else {
             this.showLoginForm = true
             this.$message({ type: 'warning', message: '当前未登录' })
         }
-        this.$axios({
-            method: 'GET',
-            url: '/api/inventory'
-        })
-        .then((res) => {
-            var inventory = {}
-            for(var i=0;i<res.data.inventory.length;i++){
-                inventory[res.data.inventory[i].pn] = res.data.inventory[i]
-            }
-            this.$store.commit('setInventory', inventory)
-        }).catch(err => {
-            this.$message({ message: err, type: 'error' })
-        })
-        this.$nuxt.$on('isEdit',(formData, formDataTemp, callback) => {
+        this.$nuxt.$on('isEdit', (formData, formDataTemp, callback) => {
             var res = this.isDifferent(formData, formDataTemp)
             callback(res)
         })
@@ -188,6 +216,21 @@ export default {
         })
     },
     methods : {
+        getInventory() {
+            this.$axios({
+                method: 'GET',
+                url: '/api/inventory'
+            })
+            .then((res) => {
+                var inventory = {}
+                for(var i=0;i<res.data.inventory.length;i++){
+                    inventory[res.data.inventory[i].pn] = res.data.inventory[i]
+                }
+                this.$store.commit('setInventory', inventory)
+            }).catch(err => {
+                this.$message({ message: err, type: 'error' })
+            })
+        },
         showLogin() {
             if(localStorage.getItem('token')) {
                 this.$confirm('即将退出, 是否继续?', '提示', {
@@ -218,6 +261,7 @@ export default {
                             localStorage.setItem('token', res.data.token)
                             localStorage.setItem('user', JSON.stringify(res.data.user))
                             this.$message({ type: 'success', message: '登录成功' })
+                            this.getInventory()
                             this.showLoginForm = false
                         } else {
                             this.$message({ type: 'error', message: res.data.err })
@@ -249,7 +293,7 @@ export default {
                             this.resetForm = { account: null, pwd: null, newpwd: null }
                             this.showResetForm = false
                         } else {
-                            this.$message({ message: res.data, type: 'warning' })
+                            this.$message({ message: res.data, type: 'error' })
                         }
                     }).catch(err => {
                         this.$message({ type: 'error', message: err })
@@ -308,5 +352,11 @@ export default {
         position: fixed;
         top: 1rem;
         right: 0;
+    }
+    .title {
+        font-size: 2rem;
+        position: fixed;
+        top: 1rem;
+        right: 7rem;
     }
 </style>

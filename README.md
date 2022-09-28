@@ -42,18 +42,19 @@
 
 ### 数据库
 
-1. 创建MySQL数据库及用户, 在express/db/mysql.js第4、22行修改数据库连接配置, 第1056行修改初始用户信息
-2. 创建redis数据库及用户, 在express/db/redis.js第2行修改数据库连接配置
-3. 注释express/bin/www.js第14~87行, 取消注释express/db/mysql.js第1019~1024行
-4. 根据需要在express/db/mysql.js第1020行修改admin信息
-5. express文件夹下运行node ./bin/www同步表, 结束运行
+1. express文件夹下运行npm i, 安装依赖
+2. 创建MySQL数据库及用户, 在express/utils/mysql.js第4、22行修改数据库连接配置, 第1056行修改初始用户信息
+3. 创建redis数据库及用户, 在express/utils/redis.js第2行修改数据库连接配置
+4. 注释express/bin/www.js第14~87行, 取消注释express/utils/mysql.js第1012~1017行
+5. 根据需要在express/db/mysql.js第1020行修改admin信息, 默认账号1144806425@qq.com密码iwigao; 数据库存储加密后的结果, 算法见nuxt/layouts/default.vue中method下getHash方法
+6. express文件夹下运行node ./bin/www同步表, 同步后结束运行
 
     ```shell
     node ./bin/www
     ```
 
-6. 注释express/db/mysql.js第1055~1060行取消同步, express/bin/www.js第14~87行取消注释
-7. 创建存储过程, 根据需要修改DEFINER(需具有创建存储过程权限)
+7. 注释express/utils/mysql.js第1012~1017行取消同步, express/bin/www.js第14~87行取消注释
+8. 创建存储过程, 根据需要修改DEFINER(需具有创建存储过程权限)
    - 获取采购未入库数量
 
     ```sql
@@ -79,7 +80,7 @@
     END
     ```
 
-    - 获取库存
+    - 查库存
 
     ```sql
     CREATE DEFINER=`sa`@`%` PROCEDURE `getstock`()
@@ -94,7 +95,7 @@
     END
     ```
 
-    - 获取BOM层级
+    <!-- - 获取BOM层级
 
     ```sql
     CREATE DEFINER=`sa`@`%` PROCEDURE `updatebomlevel`()
@@ -124,9 +125,7 @@
             UPDATE inventory SET status = -1 WHERE status = 1 AND pn IN (SELECT pn FROM usedpn);
             UPDATE inventory SET status = null WHERE status = 0 AND pn IN (SELECT pn FROM usedpn);
     END
-    ```
-
-   - 查库存
+    ``` -->
 
 ### 打包nuxt
 

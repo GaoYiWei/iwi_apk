@@ -165,7 +165,6 @@ export default {
                 editBtn: true,
                 table: true
             }
-            
         }
     },
     computed: {
@@ -316,6 +315,7 @@ export default {
                         this.$refs.xTable.remove()
                         this.$message({ message: '删除成功', type: 'success' })
                     } else {
+                        this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
                     }
                 }).catch(err => {
@@ -352,6 +352,7 @@ export default {
                     this.formData.auditedat = auditedat
                     this.formData.status = 1
                 } else {
+                    this.$message({ message: res.data, type: 'error' })
                     this.ctrlDisabled = btnStatus
                 }
             }).catch(err => {
@@ -386,6 +387,7 @@ export default {
                         this.$message({ message: '保存成功', type: 'success' })
                         this.isEdit = false
                     } else {
+                        this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
                     }
                 }).catch(err => {
@@ -404,6 +406,7 @@ export default {
                     if(res.data=='OK') {
                         this.$message({ message: '保存成功', type: 'success' })
                     } else {
+                        this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
                     }
                 }).catch(err => {
@@ -440,6 +443,8 @@ export default {
                 if(res.data=='OK') {
                     this.$message({ message: msg, type: 'success' })
                     this.formData.status = status
+                } else {                    
+                    this.$message({ message: res.data, type: 'error' })
                 }
             }).catch(err => {
                 this.submitLoading = false

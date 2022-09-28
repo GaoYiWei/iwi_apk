@@ -15,7 +15,7 @@
             row-key
             :data="tableList"
             :row-config="{isHover: true}"
-            :tree-config="{rowField:'id', transform: true, accordion: true, line: true}"
+            :tree-config="{rowField:'id', accordion: true, line: true, expandAll: true}"
             :radio-config="{trigger: 'row', labelField: 'name', highlight: true, range: true, strict: false}"
             @cell-dblclick="cellDBLClickEvent">        
             <vxe-column field="name" title="名称" type="radio" tree-node></vxe-column>
@@ -73,8 +73,8 @@
                     <vxe-form-item align="center" title-align="left" :span="24">
                         <template #default>
                             <vxe-button type="submit">提交</vxe-button>
-                            <vxe-button @click="banEvent()">{{banBtn}}</vxe-button>
-                            <vxe-button @click="deleteEvent()">删除</vxe-button>
+                            <vxe-button @click="banEvent()" :disabled="isEdit?false:true">{{banBtn}}</vxe-button>
+                            <vxe-button @click="deleteEvent()" :disabled="isEdit?false:true">删除</vxe-button>
                         </template>
                     </vxe-form-item>
                 </vxe-form>
@@ -225,6 +225,9 @@ export default {
                         this.isEdit = false
                         this.$message({ message: '保存成功', type: 'success' })
                         Object.assign(this.selectRow, this.formData)
+                        this.selectRow = null
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false
@@ -253,7 +256,9 @@ export default {
                             })
                         }                        
                         $table.reloadData(this.tableData)
-                    }                    
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
+                    }                   
                 }).catch(err => {
                     this.submitLoading = false
                     this.$message({ message: err, type: 'error' })
@@ -278,29 +283,35 @@ export default {
             Object.assign(this.selectRow, this.formData)
         },
         deleteEvent() {
-            this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                var k = { id: null }
-                k['id'] = this.formData.id
-                this.$axios({
-                    method: 'DELETE',
-                    url: '/api/whs',
-                    params: k
-                }).then(res => {
-                    this.submitLoading = false
-                    if(res.data=='OK') {
-                        this.showEdit = false
-                        this.$refs.xTable.remove(this.selectRow)
-                        this.$message({ message: '删除成功', type: 'success' })
-                    }
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
+            if(this.formData.status==1||this.formData.status==0) {
+                this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var k = { id: null }
+                    k['id'] = this.formData.id
+                    this.$axios({
+                        method: 'DELETE',
+                        url: '/api/whs',
+                        params: k
+                    }).then(res => {
+                        this.submitLoading = false
+                        if(res.data=='OK') {
+                            this.showEdit = false
+                            this.$refs.xTable.remove(this.selectRow)
+                            this.$message({ message: '删除成功', type: 'success' })
+                        } else {
+                            this.$message({ message: res.data, type: 'error' })
+                        }
+                    }).catch(err => {
+                        this.submitLoading = false
+                        this.$message({ message: err, type: 'error' })
+                    })
                 })
-            })
+            } else {
+                this.$message({ message: '当前记录不可删除', type: 'warning' })
+            }
         }
     }
 }

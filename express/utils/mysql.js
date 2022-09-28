@@ -131,12 +131,6 @@ const partners = sequelize.define('partners', {
     editedat: {
         type: DataTypes.DATE
     },
-    audited: {
-        type: DataTypes.STRING(10)
-    },
-    auditedat: {
-        type: DataTypes.DATE
-    },
     status: {
         type: DataTypes.BOOLEAN
     },
@@ -1010,7 +1004,7 @@ const sbntrace = sequelize.define('sbntrace', {
 })
 
 // sequelize.sync().then(()=>{
-//     users.create({account: '1144806425@qq.com',name: 'admin',pwd: 'iwigao',tel: '18550442412',depart: 'admin',created: 'admin',createdat: Date(),status: 1}).then( res => {
+//     users.create({account: '1144806425@qq.com',name: 'admin',pwd: '7509603916',tel: '18550442412',depart: 'admin',created: 'admin',createdat: Date(),status: 1}).then( res => {
 //         console.log('模型已同步到数据库') 
 //         console.log(res.toJSON())
 //     }).catch(err => console.log(err))

@@ -27,7 +27,7 @@
             <vxe-column field="audited" title="审核人" show-overflow width="90"></vxe-column>
             <vxe-column field="auditedat" title="审核时间" :visible="false"></vxe-column>
             <vxe-column field="status" title="状态" formatter="formatStatus" show-overflow width="60"></vxe-column>
-            <vxe-column field="deactivateat" title="停用时间" :visible="false"></vxe-column>
+            <vxe-column field="deactivateat" title="停用时间" width="180"></vxe-column>
         </vxe-table>
 
         <vxe-modal v-model="showEdit" :title="selectRow ? '编辑&保存' : '新增&保存'" width="800" min-width="600" min-height="600" :loading="submitLoading" resize destroy-on-close>
@@ -106,10 +106,10 @@
                     </vxe-form-item>
                     <vxe-form-item align="center" title-align="left" :span="24">
                         <template #default>
-                            <vxe-button type="submit">提交</vxe-button>
-                            <vxe-button @click="auditEvent()">{{auditBtn}}</vxe-button>
-                            <vxe-button @click="banEvent()">{{banBtn}}</vxe-button>
-                            <vxe-button @click="deleteEvent()">删除</vxe-button>
+                            <vxe-button type="submit" :disabled="ctrlDisabled.saveBtn">提交</vxe-button>
+                            <vxe-button @click="auditEvent()" :disabled="formData.status==-1||formData.status==null?true:ctrlDisabled.auditBtn">{{auditBtn}}</vxe-button>
+                            <vxe-button @click="banEvent()" :disabled="formData.audited?false:true">{{banBtn}}</vxe-button>
+                            <vxe-button @click="deleteEvent()" :disabled="ctrlDisabled.deleteBtn">删除</vxe-button>
                         </template>
                     </vxe-form-item>
                 </vxe-form>
@@ -178,7 +178,13 @@ export default {
             filterName: '',
             showEdit: false,
             departsList: [],
-            submitLoading: false
+            submitLoading: false,
+            ctrlDisabled: {
+                saveBtn: true,
+                auditBtn: true,
+                deleteBtn: true,
+                banBtn: true
+            }
         }
     },
     computed: {
@@ -222,6 +228,9 @@ export default {
             }                
             this.selectRow = null
             this.showEdit = true
+            this.$nuxt.$emit('btnCtrl', 'add', res => {
+                this.ctrlDisabled = res
+            })
         },
         cellDBLClickEvent({ row }) {
             this.formData = {
@@ -242,6 +251,9 @@ export default {
             this.selectRow = row
             this.showEdit = true
             this.formDataTemp = JSON.stringify(this.formData)
+            this.$nuxt.$emit('btnCtrl', 'edit', res => {
+                this.ctrlDisabled = res
+            })
         },
         banEvent() {
             if(this.formData.status==0){
@@ -285,6 +297,11 @@ export default {
                         this.showEdit = false
                         this.$message({ message: '保存成功', type: 'success' })
                         Object.assign(this.selectRow, this.formData)
+                        this.$nuxt.$emit('btnCtrl', 'save', res => {
+                            this.ctrlDisabled = res
+                        })
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false
@@ -308,6 +325,8 @@ export default {
                         this.showEdit = false
                         this.$message({ message: '保存成功', type: 'success' })
                         $table.insert(this.formData)  
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false
@@ -319,31 +338,43 @@ export default {
             this.formData.audited = this.$store.state.user.name
             this.formData.auditedat = new Date().toLocaleString('chinese', { hour12: false })
             this.saveEvent()
+            this.$nuxt.$emit('btnCtrl', this.formData.audited ? 'unaudit' : 'audit', res => {
+                this.ctrlDisabled = res
+            })
         },
         deleteEvent() {
-            this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                var k = { pn: null }
-                k['pn'] = this.formData.pn
-                this.$axios({
-                    method: 'DELETE',
-                    url: '/api/inventory',
-                    params: k
-                }).then(res => {
-                    this.submitLoading = false
-                    if(res.data=='OK') {
-                        this.showEdit = false
-                        this.$refs.xTable.remove(this.selectRow)
-                        this.$message({ message: '删除成功', type: 'success' })
-                    }
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
+            if(this.formData.status==1||this.formData.status==0) {
+                this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var k = { pn: null }
+                    k['pn'] = this.formData.pn
+                    this.$axios({
+                        method: 'DELETE',
+                        url: '/api/inventory',
+                        params: k
+                    }).then(res => {
+                        this.submitLoading = false
+                        if(res.data=='OK') {
+                            this.showEdit = false
+                            this.$refs.xTable.remove(this.selectRow)
+                            this.$message({ message: '删除成功', type: 'success' })
+                            this.$nuxt.$emit('btnCtrl', 'delete', res => {
+                                this.ctrlDisabled = res
+                            })
+                        } else {
+                            this.$message({ message: res.data, type: 'error' })
+                        }
+                    }).catch(err => {
+                        this.submitLoading = false
+                        this.$message({ message: err, type: 'error' })
+                    })
                 })
-            })
+            } else {
+                this.$message({ message: '当前记录不可删除', type: 'warning' })
+            }
         }
     }
 }

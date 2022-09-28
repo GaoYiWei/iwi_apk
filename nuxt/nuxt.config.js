@@ -31,6 +31,7 @@ export default {
         '@/plugins/element-ui',
         '@/plugins/axios',
         '@/plugins/vxe',
+        '@/plugins/passive',
         '@/assets/js/iconfont'
     ],
 

@@ -16,7 +16,7 @@
             :row-config="{isHover: true}"
             :data="tableList"
             @cell-dblclick="cellDBLClickEvent">
-            <vxe-column field="account" title="账号" width="180"></vxe-column>
+            <vxe-column field="account" title="账号" width="300"></vxe-column>
             <vxe-column field="name" title="姓名" width="120"></vxe-column>
             <vxe-column field="pwd" title="密码(HASH)" width="120"></vxe-column>
             <vxe-column field="depart" title="部门" width="80"></vxe-column>
@@ -25,8 +25,6 @@
             <vxe-column field="createdat" title="创建时间" show-overflow :visible="false"></vxe-column>
             <vxe-column field="edited" title="编辑人" show-overflow width="90"></vxe-column>
             <vxe-column field="editedat" title="编辑时间" show-overflow :visible="false"></vxe-column>
-            <vxe-column field="audited" title="审核人" show-overflow width="90"></vxe-column>
-            <vxe-column field="auditedat" title="审核时间" :visible="false"></vxe-column>
             <vxe-column field="status" title="状态" formatter="formatStatus" show-overflow width="60"></vxe-column>
             <vxe-column field="deactivateat" title="停用时间" :visible="false"></vxe-column>
         </vxe-table>
@@ -77,34 +75,24 @@
                             <div style="border-bottom: 1px lightgray solid "></div>
                         </template>
                     </vxe-form-item>
-                    <vxe-form-item field="created" title="创建人" :span="8" :item-render="{}">
+                    <vxe-form-item field="created" title="创建人" :span="6" :item-render="{}">
                         <template #default="{ data }">
                             <vxe-input v-model="data.created" readonly></vxe-input>
                         </template>
                     </vxe-form-item>
-                    <vxe-form-item field="createdat" title="创建时间" :span="8" :item-render="{}">
+                    <vxe-form-item field="createdat" title="创建时间" :span="6" :item-render="{}">
                         <template #default="{ data }">
                             <vxe-input v-model="data.createdat" readonly></vxe-input>
                         </template>
                     </vxe-form-item>
-                    <vxe-form-item field="edited" title="编辑人" :span="8" :item-render="{}">
+                    <vxe-form-item field="edited" title="编辑人" :span="6" :item-render="{}">
                         <template #default="{ data }">
                             <vxe-input v-model="data.edited" readonly></vxe-input>
                         </template>
                     </vxe-form-item>
-                    <vxe-form-item field="editedat" title="编辑时间" :span="8" :item-render="{}">
+                    <vxe-form-item field="editedat" title="编辑时间" :span="6" :item-render="{}">
                         <template #default="{ data }">
                             <vxe-input v-model="data.editedat" readonly></vxe-input>
-                        </template>
-                    </vxe-form-item>
-                    <vxe-form-item field="audited" title="审核人" :span="8" :item-render="{}">
-                        <template #default="{ data }">
-                            <vxe-input v-model="data.audited" readonly></vxe-input>
-                        </template>
-                    </vxe-form-item>
-                    <vxe-form-item field="auditedat" title="审核时间" :span="8" :item-render="{}">
-                        <template #default="{ data }">
-                            <vxe-input v-model="data.auditedat" readonly></vxe-input>
                         </template>
                     </vxe-form-item>
                     <vxe-form-item align="center" title-align="left" :span="24">
@@ -181,7 +169,8 @@ export default {
             filterName: '',
             showEdit: false,
             departsList: [],
-            submitLoading: false
+            submitLoading: false,
+            isEdit: false
         }
     },
     computed: {
@@ -230,6 +219,7 @@ export default {
             }                
             this.selectRow = null
             this.showEdit = true
+            this.isEdit = false
         },
         cellDBLClickEvent({ row }) {
             this.formData = {
@@ -247,6 +237,7 @@ export default {
             }
             this.selectRow = row
             this.showEdit = true
+            this.isEdit = true
             this.formDataTemp = JSON.stringify(this.formData)
         },
         banEvent() {
@@ -289,8 +280,12 @@ export default {
                     this.submitLoading = false
                     if(res.data=='OK') {
                         this.showEdit = false
+                        this.isEdit = false
                         this.$message({ message: '保存成功', type: 'success' })
                         Object.assign(this.selectRow, this.formData)
+                        this.selectRow = null
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false
@@ -315,6 +310,8 @@ export default {
                         this.showEdit = false
                         this.$message({ message: '保存成功', type: 'success' })
                         $table.insert(this.formData)  
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
                     }
                 }).catch(err => {
                     this.submitLoading = false
@@ -323,29 +320,35 @@ export default {
             }
         },
         deleteEvent() {
-            this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                var k = { account: null }
-                k['account'] = this.formData.account
-                this.$axios({
-                    method: 'DELETE',
-                    url: '/api/users',
-                    params: k
-                }).then(res => {
-                    this.submitLoading = false
-                    if(res.data=='OK') {
-                        this.showEdit = false
-                        this.$refs.xTable.remove(this.selectRow)
-                        this.$message({ message: '删除成功', type: 'success' })
-                    }
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
+            if(this.formData.status==1||this.formData.status==0) {
+                this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var k = { account: null }
+                    k['account'] = this.formData.account
+                    this.$axios({
+                        method: 'DELETE',
+                        url: '/api/users',
+                        params: k
+                    }).then(res => {
+                        this.submitLoading = false
+                        if(res.data=='OK') {
+                            this.showEdit = false
+                            this.$refs.xTable.remove(this.selectRow)
+                            this.$message({ message: '删除成功', type: 'success' })
+                        } else {
+                            this.$message({ message: res.data, type: 'error' })
+                        }
+                    }).catch(err => {
+                        this.submitLoading = false
+                        this.$message({ message: err, type: 'error' })
+                    })
                 })
-            })
+            } else {
+                this.$message({ message: '当前记录不可删除', type: 'warning' })
+            }
         },
         searchEvent () {
             const filterName = XEUtils.toValueString(this.filterName).trim().toLowerCase()
