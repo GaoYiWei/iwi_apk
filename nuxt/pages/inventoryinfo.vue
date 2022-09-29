@@ -110,8 +110,8 @@
                     <vxe-form-item align="center" title-align="left" :span="24">
                         <template #default>
                             <vxe-button type="submit">提交</vxe-button>
-                            <vxe-button @click="auditEvent()">{{auditBtn}}</vxe-button>
-                            <vxe-button @click="deleteEvent()">删除</vxe-button>
+                            <vxe-button @click="auditEvent()" :disabled="isEdit?false:true">{{auditBtn}}</vxe-button>
+                            <vxe-button @click="deleteEvent()" :disabled="isEdit&&!formData.audited?false:true">删除</vxe-button>
                         </template>
                     </vxe-form-item>
                 </vxe-form>
@@ -122,7 +122,7 @@
 </template>
 
 <script>
-
+import { mapState } from 'vuex'
 export default {
     data() {
         return {
@@ -130,9 +130,6 @@ export default {
             tableList: [],
             formData: {
                 pn: null,
-                name: null,
-                model: null,
-                namedesc: null,
                 size: null,
                 volume: null,
                 netw: null,
@@ -162,12 +159,10 @@ export default {
                     }
                 ],
                 netw: [
-                    { required: true, message: '请输入净重, 单位kg' },
-                    { min: 0.0001 }
+                    { required: true, message: '请输入净重, 单位kg' }
                 ],
                 grossw: [
-                    { required: true, message: '请输入毛重, 单位kg' },
-                    { min: 0.00002 }
+                    { required: true, message: '请输入毛重, 单位kg' }
                 ]
             }, 
             selectRow: null,
@@ -175,10 +170,11 @@ export default {
             showEdit: false,
             departsList: [],
             submitLoading: false,
-            inventory: []
+            isEdit: false
         }
     },
     computed: {
+        ...mapState(['inventory']),
         auditBtn() {
             return this.formData.audited ? '弃审' : '审核'
         }  
@@ -190,14 +186,6 @@ export default {
         }).then(res => {
             this.tableList = res.data['inventoryinfo']
             this.tableData = res.data['inventoryinfo']
-        }).catch(err => {
-            this.$message({ message: err, type: 'error' })
-        })
-        this.$axios({
-            method: 'GET',
-            url: '/api/inventory'
-        }).then(res => {
-            this.inventory = res.data['inventory']
         }).catch(err => {
             this.$message({ message: err, type: 'error' })
         })
@@ -221,8 +209,9 @@ export default {
             }                
             this.selectRow = null
             this.showEdit = true
+            this.isEdit = false
         },
-        cellDBLClickEvent({ row }) {
+        cellDBLClickEvent({ row }) {           
             this.formData = {
                 pn: row.pn,
                 size: row.size,
@@ -235,25 +224,36 @@ export default {
                 editedat: row.editedat,
                 audited: row.audited,
                 auditedat: row.auditedat
-            }
-            this.getInventoryInfo()
+            }            
             this.selectRow = row
             this.showEdit = true
+            this.isEdit = true
+            this.getInventoryInfo()
             this.formDataTemp = JSON.stringify(this.formData)
         },
-        saveEvent() {
-            this.submitLoading = true
+        saveEvent(e) {
             var $table = this.$refs.xTable
             if(!this.valiteW()) { return }
+            this.submitLoading = true
             if (this.selectRow) {
-                if(this.formDataTemp==this.formData) {
+                if(this.formDataTemp==JSON.stringify(this.formData)) {
                     this.$message({ message: '数据未修改, 此次未提交'})
+                    this.submitLoading = false
                     return
                 }
-                this.formData.edited = this.$store.state.user.name
-                this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })
-                var w = { pn: null }, v = JSON.parse(JSON.stringify(this.formData))
-                w['pn'] = this.formData['pn']
+                var w={ pn: null }, v, msg='保存成功'
+                w['pn'] = this.formData['pn']                
+                if(e!='auditEvent') {
+                    this.formData.edited = this.$store.state.user.name
+                    this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })
+                } else if(e=='auditEvent') {
+                    if(this.formData.audited) {
+                        msg = '已审核'
+                    } else {
+                        msg = '已弃审'
+                    }
+                }
+                v = JSON.parse(JSON.stringify(this.formData))
                 delete v['pn']
                 this.$axios({
                     method: 'PATCH',
@@ -263,7 +263,8 @@ export default {
                     this.submitLoading = false
                     if(res.data=='OK') {
                         this.showEdit = false
-                        this.$message({ message: '保存成功', type: 'success' })
+                        this.isEdit = false
+                        this.$message({ message: msg, type: 'success' })
                         Object.assign(this.selectRow, this.formData)
                     } else {
                         this.$message({ message: res.data, type: 'error' })
@@ -300,9 +301,18 @@ export default {
             }
         },
         auditEvent() {
-            this.formData.audited = this.$store.state.user.name
-            this.formData.auditedat = new Date().toLocaleString('chinese', { hour12: false })
-            this.saveEvent()
+            if(this.formData.audited) {
+                this.formData.audited = null
+                this.formData.auditedat = null
+            } else {
+                if(this.formData!=JSON.stringify(this.formData)) {
+                    this.$message({ message: '数据已修改, 请保存后审核', type: 'warning'})
+                    return
+                }
+                this.formData.audited = this.$store.state.user.name
+                this.formData.auditedat = new Date().toLocaleString('chinese', { hour12: false })
+            }
+            this.saveEvent('auditEvent')
         },
         deleteEvent() {
             this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
@@ -345,7 +355,7 @@ export default {
         },
         valiteW() {
             if(Number(this.formData.netw)>Number(this.formData.grossw)) {
-                this.$message({ message: '毛重不得大于净重', type: 'error' })
+                this.$message({ message: '毛重不得小于净重', type: 'error' })
                 this.formData.grossw = null
                 return false
             }
@@ -353,17 +363,29 @@ export default {
         },
         getInventoryInfo() {
             if(this.formData.pn.length==9) {
-                this.inventory.forEach(item => {
-                    if(item.pn==this.formData.pn) {
-                        this.formData.name = item.name
-                        this.formData.model = item.model
-                        this.formData.namedesc = item.namedesc
-                        return
-                    }
-                })
-                if(!this.formData.name) {
+                var data=this.$refs.xTable.getTableData().tableData
+                if(this.inventory[this.formData.pn]) {
+                    this.formData.name = this.inventory[this.formData.pn].name
+                    this.formData.model = this.inventory[this.formData.pn].model
+                    this.formData.namedesc = this.inventory[this.formData.pn].namedesc
+                } else {
                     this.formData.pn = null
-                    this.$message({ message: '料号不存在', type: 'error' })
+                    this.formData.name = null
+                    this.formData.model = null
+                    this.formData.namedesc = null
+                    this.$message({ message: '料号不存在', type: 'warning' })
+                }
+                if(!this.isEdit) {
+                    data.forEach(item => {
+                        if(item.pn==this.formData.pn) {
+                            this.formData.pn = null
+                            this.formData.name = null
+                            this.formData.model = null
+                            this.formData.namedesc = null
+                            this.$message({ message: '当前物料信息已存在', type: 'warning' })
+                            return
+                        }
+                    })
                 }
             } else {
                 this.formData.name = null

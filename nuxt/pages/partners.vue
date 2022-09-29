@@ -303,43 +303,47 @@ export default {
                 this.$message({ message: err, type: 'warning' })
             })
         },
-        saveEvent() {
+        saveEvent(e) {
             this.submitLoading = true
             if(this.selectRow) {
-                this.$nuxt.$emit('isEdit', this.formDataTemp, this.formData, res => {
-                    console.log(res)
-                    if(!res) {
-                        this.$message({ message: '数据未修改, 此次未提交'})
-                        this.submitLoading = false
-                        return
+                if(this.formDataTemp==JSON.stringify(this.formData)) {
+                    this.$message({ message: '数据未修改, 此次未提交'})
+                    this.submitLoading = false
+                    return
+                }
+                var w={}, v, msg='保存成功'
+                w['id'] = this.formData['id']
+                if(e=='banEvent') {
+                    if(this.formData.status==1||this.formData.status==-1) {
+                        msg = '已启用'
                     } else {
-                        var w={}, v=JSON.parse(JSON.stringify(this.formData))
-                        w['id'] = this.formData['id']
-                        delete v['id']
-                        console.log(this.formData,{ w: w, v: v })
-                        this.formData.edited = this.$store.state.user.name
-                        this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })                        
-                        this.$axios({
-                            method: 'PATCH',
-                            url: '/api/partners',
-                            params: { w: w, v: v }
-                        }).then(res => {
-                            this.submitLoading = false
-                            if(res.data=='OK') {
-                                this.showEdit = false
-                                this.isEdit = false                                
-                                this.$message({ message: '保存成功', type: 'success' })
-                                Object.assign(this.selectRow, this.formData)
-                                this.selectRow = null
-                            } else {
-                                this.$message({ message: res.data, type: 'error' })
-                            }
-                        }).catch(err => {
-                            this.submitLoading = false
-                            this.$message({ message: err, type: 'error' })
-                        })
+                        msg = '已停用'
                     }
-                })
+                } else {
+                    this.formData.edited = this.$store.state.user.name
+                    this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })
+                }
+                v = JSON.parse(JSON.stringify(this.formData))
+                delete v['id']
+                this.$axios({
+                    method: 'PATCH',
+                    url: '/api/partners',
+                    params: { w: w, v: v }
+                }).then(res => {
+                    this.submitLoading = false
+                    if(res.data=='OK') {
+                        this.showEdit = false
+                        this.isEdit = false                                
+                        this.$message({ message: msg, type: 'success' })
+                        Object.assign(this.selectRow, this.formData)
+                        this.selectRow = null
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
+                    }
+                }).catch(err => {
+                    this.submitLoading = false
+                    this.$message({ message: err, type: 'error' })
+                })   
             } else {
                 this.$axios({
                     method: 'POST',
@@ -405,7 +409,7 @@ export default {
                 this.formData.status=-1
                 this.formData.deactivateat = null
             }
-            this.saveEvent()
+            this.saveEvent('banEvent')
         },
         searchEvent () {
             // const filterName = XEUtils.toValueString(this.filterName).trim().toLowerCase()

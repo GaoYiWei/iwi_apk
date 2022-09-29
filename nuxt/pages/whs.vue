@@ -201,7 +201,7 @@ export default {
             this.showEdit = true
             this.isEdit = false
         },
-        saveEvent() {
+        saveEvent(e) {
             this.submitLoading = true
             var $table = this.$refs.xTable
             if(this.selectRow && this.isEdit) {
@@ -209,11 +209,20 @@ export default {
                     this.$message({ message: '数据未修改, 此次未提交'})
                     return
                 }
-                var w = { id: null }, v = JSON.parse(JSON.stringify(this.formData))
-                w['id'] = this.formData['id']
+                var w={ id: null }, v, msg='保存成功'
+                w['id'] = this.formData['id']                
+                if(e=='banEvent') {
+                    if(this.formData.status==1||this.formData.status==-1) {
+                        msg = '已启用'
+                    } else {
+                        msg = '已停用'
+                    }
+                } else {
+                    this.formData.edited = this.$store.state.user.name
+                    this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })
+                }
+                v=JSON.parse(JSON.stringify(this.formData))
                 delete v['id']
-                this.formData.edited = this.$store.state.user.name
-                this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })
                 this.$axios({
                     method: 'PATCH',
                     url: '/api/whs',
@@ -223,7 +232,7 @@ export default {
                     if(res.data=='OK') {
                         this.showEdit = false
                         this.isEdit = false
-                        this.$message({ message: '保存成功', type: 'success' })
+                        this.$message({ message: msg, type: 'success' })
                         Object.assign(this.selectRow, this.formData)
                         this.selectRow = null
                     } else {
@@ -279,8 +288,7 @@ export default {
                 this.formData.status=-1
                 this.formData.deactivateat = null
             }
-            this.saveEvent()
-            Object.assign(this.selectRow, this.formData)
+            this.saveEvent('banEvent')
         },
         deleteEvent() {
             if(this.formData.status==1||this.formData.status==0) {
