@@ -18,7 +18,7 @@
             </vxe-form-item>
             <vxe-form-item title="合同" field="contract" :item-render="{}">
                 <template #default="{ data }">
-                    <vxe-input v-model="data.contract"></vxe-input>
+                    <vxe-input v-model="data.contract" @blur="validContract()"></vxe-input>
                 </template>
             </vxe-form-item>
             <vxe-form-item title="发货时间" field="deliverat"  :item-render="{}">
@@ -283,7 +283,8 @@ export default {
             showAddrForm: false,
             provinceList: [],
             buyerList: [],
-            cneeList: {}
+            cneeList: {},
+            contractList: []
         }
     },
     computed: {
@@ -348,20 +349,6 @@ export default {
             this.submitLoading = false
             this.$message({ message: err, type: 'error' })
         })
-        this.$axios({
-            method: 'GET',
-            url: '/api/so'
-        }).then(res => {
-            if(res.data['so_m'].length>0) {
-                res.data['so_m'].forEach(item => {
-                    this.cneeList[item.cnee] = {tel: item.tel, addr: item.addr}
-                })
-            }
-            this.submitLoading = false
-        }).catch(err => {
-            this.submitLoading = false
-            this.$message({ message: err, type: 'error' })
-        })
     },
     methods : {
         getCneeEvent() {
@@ -378,6 +365,11 @@ export default {
                     if(code==this.buyerList[i].id){
                         if(this.buyerList[i].status==0||this.buyerList[i].status==null){
                             this.$message({ message: '当前客户已停用！', type: 'warning' })
+                            this.formData.buyer = null
+                            return
+                        }
+                        if(this.buyerList[i].cat=='供应商') {
+                            this.$message({ message: '此合作商类别为供应商', type: 'warning' })
                             this.formData.buyer = null
                             return
                         }
@@ -399,6 +391,11 @@ export default {
                             this.formData.buyer = null
                             return
                         }
+                        if(this.buyerList[i].cat=='供应商') {
+                            this.$message({ message: '此合作商类别为供应商', type: 'warning' })
+                            this.formData.buyer = null
+                            return
+                        }
                         this.formData.buyer = this.buyer[i].abbr
                         return
                     }
@@ -413,7 +410,7 @@ export default {
         editAddrEvent() {
             this.$refs['addrForm'].validate(valid => {
                 if(!valid) {
-                    this.formData.addr = this.addrData.province + this.addrData.city + this.addrData.county + this.addrData.detail
+                    this.formData.addr = this.addrData.province + ' ' + this.addrData.city + ' ' + this.addrData.county + ' ' + this.addrData.detail
                     this.showAddrForm = false
                 }
             })
@@ -461,6 +458,21 @@ export default {
         async insertEvent() {
             this.searchVal = null
             this.submitLoading = true
+            this.$axios({
+                method: 'GET',
+                url: '/api/so'
+            }).then(res => {
+                if(res.data['so_m'].length>0) {
+                    res.data['so_m'].forEach(item => {
+                        this.cneeList[item.cnee] = {tel: item.tel, addr: item.addr}
+                        if(item.cat=='销售') {
+                            this.contractList.push(item.contract)
+                        }
+                    })
+                }
+            }).catch(err => {
+                this.$message({ message: err, type: 'error' })
+            })
             if(this.isEdit){
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
@@ -681,19 +693,26 @@ export default {
         getName(row) {
             if(!row.pn) { return }
             if(this.inventory[row.pn]) {
-                var records = this.$refs.xTable.getTableData().tableData
-                for(var i=0;i<records.length;i++) {
-                    if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
-                    if(row.pn==records[i].pn) {
-                        this.$message({ message: '重复添加', type: 'warning' })
-                        records[i].pn = null
-                        records[i].qty = null
-                        return
-                    }                  
+                if(this.inventory[row.cpn].status==1||this.inventory[row.cpn].status==-1||this.ctrlDisabled.table||this.isEdit){
+                    var records = this.$refs.xTable.getTableData().tableData
+                    for(var i=0;i<records.length;i++) {
+                        if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
+                        if(row.pn==records[i].pn) {
+                            this.$message({ message: '重复添加', type: 'warning' })
+                            records[i].pn = null
+                            records[i].qty = null
+                            return
+                        }                  
+                    }
+                    return this.inventory[row.pn].name
+                } else {
+                    this.$message({ message: '料号已停用', type: 'warning' })
+                    row.qty = null
+                    row.cpn = null
+                    return
                 }
-                return this.inventory[row.pn].name
             } else {
-                this.$message({ message: '料号不存在, 请刷新页面再试', type: 'warning' })
+                this.$message({ message: '料号不存在, 请刷新后再试', type: 'warning' })
                 row.qty = null
                 row.pn = null
                 return
@@ -725,6 +744,12 @@ export default {
         },
         insertRowEvent() {
             this.$refs.xTable.insertAt({},-1)
+        },
+        validContract() {
+            if(this.contractList.indexOf(this.formData.contract)>=0) {
+                this.formData.contract = null
+                this.$message({ message: '合同号已存在', type: 'warning' })
+            }
         }
     }
 }

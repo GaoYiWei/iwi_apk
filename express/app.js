@@ -63,10 +63,10 @@ const indexRouter = require('./routes/index');
 app.use('/', indexRouter)
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
-    console.log('catch 404')
-    next(createError(404));
-});
+// app.use(function(req, res, next) {
+//     console.log('catch 404')
+//     next(createError(404));
+// });
 
 // error handler
 app.use(function(err, req, res, next) {
@@ -76,7 +76,6 @@ app.use(function(err, req, res, next) {
 
     // render the error page
     res.status(err.status || 500);
-    console.log('errrrrrr')
     res.render('error');
 });
 

@@ -457,19 +457,26 @@ export default {
         getName(row) {
             if(!row.pn) { return }
             if(this.inventory[row.pn]) {
-                var records = this.$refs.xTable.getTableData().tableData
-                for(var i=0;i<records.length;i++) {
-                    if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
-                    if(row.pn==records[i].pn) {
-                        this.$message({ message: '重复添加', type: 'warning' })
-                        records[i].pn = null
-                        records[i].qty = null
-                        return
-                    }                  
+                if(this.inventory[row.cpn].status==1||this.inventory[row.cpn].status==-1||this.ctrlDisabled.table||this.isEdit){
+                    var records = this.$refs.xTable.getTableData().tableData
+                    for(var i=0;i<records.length;i++) {
+                        if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
+                        if(row.pn==records[i].pn) {
+                            this.$message({ message: '重复添加', type: 'warning' })
+                            records[i].pn = null
+                            records[i].qty = null
+                            return
+                        }                  
+                    }
+                    return this.inventory[row.pn].name
+                } else {
+                    this.$message({ message: '料号已停用', type: 'warning' })
+                    row.qty = null
+                    row.cpn = null
+                    return
                 }
-                return this.inventory[row.pn].name
             } else {
-                this.$message({ message: '料号不存在, 请刷新页面再试', type: 'warning' })
+                this.$message({ message: '料号不存在, 请刷新后再试', type: 'warning' })
                 row.qty = null
                 row.pn = null
                 return

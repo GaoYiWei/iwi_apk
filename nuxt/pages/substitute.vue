@@ -209,7 +209,7 @@ export default {
                     this.$message({ message: err, type: 'error' })
                 })
             } else {
-                this.$message({ message: '料号不存在', type: 'error' })
+                this.$message({ message: '料号不存在, 请刷新后再试', type: 'error' })
             }
         },
         async insertEvent() {
@@ -434,7 +434,7 @@ export default {
             if(!this.formData.pn) { return }
             if(!this.inventory[this.formData.pn]) {
                 this.formData.pn = null
-                this.$message({ message: '料号不存在', type: 'error' })
+                this.$message({ message: '料号不存在, 请刷新后再试', type: 'error' })
                 return
             }
             if(this.mpnList.indexOf(this.formData.pn) > -1){
@@ -449,25 +449,32 @@ export default {
         getName(row) {
             if(!row.substitutes) { return }
             if(this.inventory[row.substitutes]) {
-                var records = this.$refs.xTable.getTableData().tableData
-                for(var i=0;i<records.length;i++) {
-                    if(!records[i].substitutes || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
-                    if(records[i].substitutes==this.formData.pn) {
-                        this.$message({ message: '替代料与主料号重复', type: 'warning' })
-                        records[i].substitutes = null
-                        records[i].prop = null
-                        return
+                if(this.inventory[row.substitutes].status==1||this.inventory[row.substitutes].status==-1||this.ctrlDisabled.table||this.isEdit){
+                    var records = this.$refs.xTable.getTableData().tableData
+                    for(var i=0;i<records.length;i++) {                        
+                        if(records[i].substitutes==this.formData.pn) {
+                            this.$message({ message: '替代料与主料号重复', type: 'warning' })
+                            records[i].substitutes = null
+                            records[i].prop = null
+                            return
+                        }
+                        if(!records[i].substitutes || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
+                        if(row.substitutes==records[i].substitutes) {
+                            this.$message({ message: '重复添加', type: 'warning' })
+                            records[i].substitutes = null
+                            records[i].prop = null
+                            return
+                        }                  
                     }
-                    if(row.substitutes==records[i].substitutes) {
-                        this.$message({ message: '重复添加', type: 'warning' })
-                        records[i].substitutes = null
-                        records[i].prop = null
-                        return
-                    }                  
+                    return this.inventory[row.substitutes].name
+                } else {
+                    this.$message({ message: '料号已停用', type: 'warning' })
+                    row.qty = null
+                    row.cpn = null
+                    return
                 }
-                return this.inventory[row.substitutes].name
             } else {
-                this.$message({ message: '料号不存在, 请刷新页面再试', type: 'warning' })
+                this.$message({ message: '料号不存在, 请刷新后再试', type: 'warning' })
                 row.prop = null
                 row.substitutes = null
                 return

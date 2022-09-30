@@ -335,14 +335,14 @@ export default {
         width: 100%; 
     }
     #header {
-        height: 6%;
+        height: 5%;
         width: 100%;
         margin-top: -0.2rem ;
         overflow: hidden;
         border-bottom: 0.2rem solid rgb(160, 160, 160);
     }
     #body {
-        height: 94%;
+        height: 93%;
         width: 98%;
         padding: 0 1% 0 1%;
         overflow-y: scroll;

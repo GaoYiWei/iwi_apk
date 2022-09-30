@@ -1009,7 +1009,7 @@ const sbntrace = sequelize.define('sbntrace', {
 //         console.log(res.toJSON())
 //     }).catch(err => console.log(err))
 // }).catch(err => console.log(err))
-
+const { QueryTypes } = require('sequelize');
 module.exports = {
     // 写入: [ model, [ table_values ] ], model为sequelize中的模型, table_values为JSON
     insert: async function insert(list) {

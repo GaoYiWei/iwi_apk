@@ -161,7 +161,6 @@ router.get('/call',(req, res) => {
         res.send(data)
     })
     .catch(err => {
-        console.log(err)
         res.sendStatus(500)
         return
     })

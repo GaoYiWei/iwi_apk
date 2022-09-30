@@ -349,20 +349,6 @@ export default {
             this.submitLoading = false
             this.$message({ message: err, type: 'error' })
         })
-        this.$axios({
-            method: 'GET',
-            url: '/api/po'
-        }).then(res => {
-            if(res.data['po_m'].length>0) {
-                res.data['po_m'].forEach(item => {
-                    this.cneeList[item.cnee] = {tel: item.tel, addr: item.addr}
-                })
-            }
-            this.submitLoading = false
-        }).catch(err => {
-            this.submitLoading = false
-            this.$message({ message: err, type: 'error' })
-        })
     },
     methods : {
         getCneeEvent() {
@@ -379,6 +365,11 @@ export default {
                     if(code==this.vendorList[i].id){
                         if(this.vendorList[i].status==0||this.vendorList[i].status==null){
                             this.$message({ message: '当前供应商已停用！', type: 'warning' })
+                            this.formData.vendor = null
+                            return
+                        }
+                        if(this.vendorList[i].cat=='客户') {
+                            this.$message({ message: '此合作商类别为客户', type: 'warning' })
                             this.formData.vendor = null
                             return
                         }
@@ -400,6 +391,11 @@ export default {
                             this.formData.vendor = null
                             return
                         }
+                        if(this.vendorList[i].cat=='客户') {
+                            this.$message({ message: '此合作商类别为客户', type: 'warning' })
+                            this.formData.vendor = null
+                            return
+                        }
                         this.formData.vendor = this.vendor[i].abbr
                         return
                     }
@@ -414,7 +410,7 @@ export default {
         editAddrEvent() {
             this.$refs['addrForm'].validate(valid => {
                 if(!valid) {
-                    this.formData.addr = this.addrData.province + this.addrData.city + this.addrData.county + this.addrData.detail
+                    this.formData.addr = this.addrData.province + ' ' + this.addrData.city + ' ' + this.addrData.county + ' ' + this.addrData.detail
                     this.showAddrForm = false
                 }
             })
@@ -466,11 +462,14 @@ export default {
                 method: 'GET',
                 url: '/api/po'
             }).then(res => {
-                res.data['po_m'].forEach(item => {
-                    if(item.cat=='采购') {
-                        this.contractList.push(item.contract)
-                    }
-                })
+                if(res.data['po_m'].length>0) {
+                    res.data['po_m'].forEach(item => {
+                        this.cneeList[item.cnee] = {tel: item.tel, addr: item.addr}
+                        if(item.cat=='采购') {
+                            this.contractList.push(item.contract)
+                        }
+                    })
+                }
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
@@ -696,19 +695,26 @@ export default {
         getName(row) {
             if(!row.pn) { return }
             if(this.inventory[row.pn]) {
-                var records = this.$refs.xTable.getTableData().tableData
-                for(var i=0;i<records.length;i++) {
-                    if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
-                    if(row.pn==records[i].pn) {
-                        this.$message({ message: '重复添加', type: 'warning' })
-                        records[i].pn = null
-                        records[i].qty = null
-                        return
-                    }                  
+                if(this.inventory[row.pn].status==1||this.inventory[row.pn].status==-1||this.ctrlDisabled.table||this.isEdit){
+                    var records = this.$refs.xTable.getTableData().tableData
+                    for(var i=0;i<records.length;i++) {
+                        if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
+                        if(row.pn==records[i].pn) {
+                            this.$message({ message: '重复添加', type: 'warning' })
+                            records[i].pn = null
+                            records[i].qty = null
+                            return
+                        }                  
+                    }
+                    return this.inventory[row.pn].name
+                } else {
+                    this.$message({ message: '料号已停用', type: 'warning' })
+                    row.qty = null
+                    row.pn = null
+                    return
                 }
-                return this.inventory[row.pn].name
             } else {
-                this.$message({ message: '料号不存在, 请刷新页面再试', type: 'warning' })
+                this.$message({ message: '料号不存在, 请刷新后再试', type: 'warning' })
                 row.qty = null
                 row.pn = null
                 return
@@ -742,7 +748,6 @@ export default {
             this.$refs.xTable.insertAt({},-1)
         },
         validContract() {
-            console.log(this.contractList.indexOf(this.formData.contract))
             if(this.contractList.indexOf(this.formData.contract)>=0) {
                 this.formData.contract = null
                 this.$message({ message: '合同号已存在', type: 'warning' })

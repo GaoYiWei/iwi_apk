@@ -59,31 +59,31 @@
    - 获取采购未入库数量
 
     ```sql
+    DELIMITER $$
     CREATE DEFINER=`sa`@`%` PROCEDURE `pounshiped`(in id varchar(10))
     BEGIN
-            SELECT p.pn, p.qty-IFNULL(d.delivery,0) AS todelivery FROM
-            (SELECT pn, qty FROM `po_c` WHERE id=id) AS p LEFT JOIN 
-            (SELECT pn, SUM(qty) AS delivery FROM `receipt_c` WHERE id IN (SELECT id FROM `receipt_m` WHERE superiorid=id AND cat='采购入库')) AS d 
-            ON p.pn=d.pn;
+        SELECT p.pn, p.qty-IFNULL(d.delivery,0) AS todelivery FROM
+        (SELECT pn, qty FROM `po_c` WHERE id=id) AS p LEFT JOIN 
+        (SELECT pn, SUM(qty) AS delivery FROM `receipt_c` WHERE id IN (SELECT id FROM `receipt_m` WHERE superiorid=id AND cat='采购入库')) AS d 
+        ON p.pn=d.pn;
     END
     ```
 
    - 获取销售未出库数量
 
     ```sql
+    DELIMITER $$
     CREATE DEFINER=`sa`@`%` PROCEDURE `sounshiped`(in orderid varchar(10))
     BEGIN
-            SELECT p.created,p.createdat,mcomment,ccomment,p.pn, p.qty-IFNULL(d.delivery,0) AS qty FROM
-            (SELECT created,createdat,`so_m`.comment AS mcomment,`so_c`.comment AS ccomment,pn, qty FROM `so_c` LEFT JOIN `so_m` ON `so_c`.id=`so_m`.id WHERE `so_m`.id=orderid) AS p LEFT JOIN 
-            (SELECT pn, SUM(qty) AS delivery FROM `delivery_c` WHERE id IN (SELECT id FROM `delivery_m` WHERE superiorid=orderid AND cat='销售出库')) AS d 
-            ON p.pn=d.pn 
-            WHERE p.qty>IFNULL(d.delivery,0);
-    END
+        SELECT p.created,p.createdat,mcomment,ccomment,p.pn, p.qty-IFNULL(d.delivery,0) AS qty FROM (SELECT created,createdat,`so_m`.comment AS mcomment,`so_c`.comment AS ccomment,pn, qty FROM `so_c` LEFT JOIN `so_m` ON `so_c`.id=`so_m`.id WHERE `so_m`.id=orderid) AS p LEFT JOIN (SELECT pn, SUM(qty) AS delivery FROM `delivery_c` WHERE id IN (SELECT id FROM `delivery_m` WHERE superiorid=orderid AND cat='销售出库')) AS d ON p.pn=d.pn WHERE p.qty>IFNULL(d.delivery,0);
+    END;$$
+    DELIMITER ;
     ```
 
     - 查库存
 
     ```sql
+    DELIMITER $$
     CREATE DEFINER=`sa`@`%` PROCEDURE `getstock`()
     BEGIN 
         DROP TABLE IF EXISTS stock;
@@ -93,40 +93,49 @@
         DROP TABLE IF EXISTS toout;
         CREATE TEMPORARY TABLE toout(SELECT pn,wh,SUM(qty) AS outwh FROM delivery_c LEFT JOIN delivery_m ON delivery_c.id = delivery_m.id WHERE delivery_m.audited IS NULL GROUP BY wh,pn);
         SELECT s.wh,s.pn,s.name,s.model,s.namedesc,s.stock,IFNULL(inwh,0) AS inwh,IFNULL(outwh,0) AS outwh FROM stock AS s LEFT JOIN toin ON s.wh = toin.wh AND s.pn = toin.pn LEFT JOIN toout ON s.wh = toout.wh AND s.pn = toout.pn ORDER BY s.wh,s.pn;
-    END
+    END;$$
+    DELIMITER ;
     ```
 
-    <!-- - 获取BOM层级
+    - 更新物料使用状态, SELECT 1避免无返回值报错
 
     ```sql
-    CREATE DEFINER=`sa`@`%` PROCEDURE `updatebomlevel`()
+    DELIMITER $$
+    CREATE DEFINER=`sa`@`%` PROCEDURE `updatestatus`()
     BEGIN
-            SET @j = 0;
-            UPDATE `bom_m` SET `level` = -1;
+        DROP TABLE IF EXISTS usedpn;
+        CREATE TEMPORARY TABLE usedpn(
+            SELECT pn FROM (SELECT pn FROM `inventoryinfo` UNION ALL SELECT pn FROM `bom_c` UNION ALL SELECT pn FROM `borrow_c` UNION ALL SELECT pn FROM `delivery_c` UNION ALL SELECT pn FROM `picklist_c` UNION ALL SELECT pn FROM `po_c` UNION ALL SELECT pn FROM `producewh_c` UNION ALL SELECT pn FROM `receipt_c` UNION ALL SELECT pn FROM `so_c` UNION ALL SELECT substitutes FROM `substitutes_c` UNION ALL SELECT pn FROM `substitutes_c`) AS allpn);
+        UPDATE inventory SET status = -1 WHERE status = 1 AND pn IN (SELECT pn FROM usedpn);
+        UPDATE inventory SET status = null WHERE status = 0 AND pn IN (SELECT pn FROM usedpn);
+        UPDATE inventory SET status = 1 WHERE status = -1 AND pn NOT IN (SELECT pn FROM usedpn);
+        UPDATE inventory SET status = 0 WHERE status = null AND pn NOT IN (SELECT pn FROM usedpn);
+        SELECT 1;
+    END;$$
+    DELIMITER ;
+    ```
+
+    - 更新BOM层级, SELECT 1避免无返回值报错
+
+    ```sql
+    DELIMITER $$
+    CREATE DEFINER=`sa`@`%` PROCEDURE `updatelevel`()
+    BEGIN
+            SET @j = 1;
+            UPDATE `bom_m` SET `level` = null;
             UPDATE `bom_m` SET `level` = @j WHERE `bom_m`.`pn` NOT IN (SELECT `cpn` FROM `bom_c`);
             SET @i = row_count();
-        WHILE @i <> 0 DO
-                DROP TABLE IF EXISTS temp_level;
-                CREATE TEMPORARY TABLE temp_level SELECT `bom_m`.`pn` FROM `bom_m` WHERE `bom_m`.`pn` IN (SELECT `cpn` FROM `bom_c` LEFT JOIN `bom_m` ON `bom_m`.`pn` = `bom_c`.`pn` WHERE `level` = @j);
-                UPDATE `bom_m` SET `level` = @j + 1 WHERE `bom_m`.pn IN (SELECT pn FROM temp_level);
-                SET @i = row_count();
-                SET @j = @j + 1;
-        END WHILE;
-    END
+            WHILE @i <> 0 DO
+                    DROP TABLE IF EXISTS temp_level;
+                    CREATE TEMPORARY TABLE temp_level(SELECT `bom_m`.`pn` FROM `bom_m` WHERE `bom_m`.`pn` IN (SELECT `cpn` FROM `bom_c` LEFT JOIN `bom_m` ON `bom_m`.`pn` = `bom_c`.`pn` WHERE `level` = @j));
+                    UPDATE `bom_m` SET `level` = @j + 1 WHERE `bom_m`.pn IN (SELECT pn FROM temp_level);
+                    SET @i = row_count();
+                    SET @j = @j + 1;
+            END WHILE;
+            SELECT 1;
+    END;$$
+    DELIMITER ;
     ```
-
-    - 更新物料使用状态
-
-    ```sql
-    CREATE DEFINER=`sa`@`%` PROCEDURE `updatepnstatus`()
-    BEGIN
-            DROP TABLE IF EXISTS usedpn;
-            CREATE TEMPORARY TABLE usedpn(
-                    SELECT pn FROM (SELECT pn FROM `bom_c` UNION ALL SELECT pn FROM `borrow_c` UNION ALL SELECT pn FROM `delivery_c` UNION ALL SELECT pn FROM `picklist_c` UNION ALL SELECT pn FROM `po_c` UNION ALL SELECT pn FROM `producewh_c` UNION ALL SELECT pn FROM `receipt_c` UNION ALL SELECT pn FROM `so_c` UNION ALL SELECT substitutes FROM `substitutes_c` UNION ALL SELECT pn FROM `substitutes_c`) AS allpn);
-            UPDATE inventory SET status = -1 WHERE status = 1 AND pn IN (SELECT pn FROM usedpn);
-            UPDATE inventory SET status = null WHERE status = 0 AND pn IN (SELECT pn FROM usedpn);
-    END
-    ``` -->
 
 ### 打包nuxt
 

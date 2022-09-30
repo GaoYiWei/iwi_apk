@@ -11,7 +11,7 @@
             resizable
             show-overflow
             ref="xTable"
-            height="500"
+            height="680"
             :row-config="{isHover: true}"
             :data="tableList"
             @cell-dblclick="cellDBLClickEvent">
@@ -105,7 +105,7 @@
                     </vxe-form-item>
                     <vxe-form-item align="center" title-align="left" :span="24">
                         <template #default>
-                            <vxe-button type="submit">提交</vxe-button>
+                            <vxe-button type="submit" :disabled="formData.audited?true:false">提交</vxe-button>
                             <vxe-button @click="auditEvent()" :disabled="isEdit?false:true">{{auditBtn}}</vxe-button>
                             <vxe-button @click="banEvent()" :disabled="formData.audited?false:true">{{banBtn}}</vxe-button>
                             <vxe-button @click="deleteEvent()" :disabled="isEdit&&!formData.audited?false:true">删除</vxe-button>
@@ -156,9 +156,9 @@ export default {
                     { required: true, message: '请输入品名描述' },
                     {
                         validator ({ itemValue }) {
-                            var pattern = /^[\u4E00-\u9FA5A-Za-z0-9;]+$/ 
+                            var pattern = /^[\u4E00-\u9FA5A-Za-z0-9;\*Φ]+$/ 
                             if(!pattern.test(itemValue)) {
-                                return new Error('品名描述由中英文及英文分号组成')
+                                return new Error('品名描述仅可包含：中英文、英文分号、*号、Φ')
                             }
                             if(itemValue.toString().length<2 || itemValue.toString().length>40) {
                                 return new Error('长度限制 2 到 40 个字符')
@@ -241,7 +241,7 @@ export default {
             this.selectRow = row
             this.showEdit = true
             this.isEdit = true
-            this.formDataTemp = JSON.parse(JSON.stringify(this.formData))
+            this.formDataTemp = JSON.stringify(this.formData)
         },
         banEvent() {
             if(this.formData.status==0){
@@ -344,7 +344,7 @@ export default {
                     return
                 }
             } else {
-                if(this.formData!=JSON.stringify(this.formData)) {
+                if(this.formDataTemp!=JSON.stringify(this.formData)) {
                     this.$message({ message: '数据已修改, 请保存后审核', type: 'warning'})
                     return
                 }

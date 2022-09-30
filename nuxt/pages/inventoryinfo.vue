@@ -11,7 +11,7 @@
             resizable
             show-overflow
             ref="xTable"
-            height="500"
+            height="680"
             :row-config="{isHover: true}"
             :data="tableList"
             @cell-dblclick="cellDBLClickEvent">
@@ -211,7 +211,7 @@ export default {
             this.showEdit = true
             this.isEdit = false
         },
-        cellDBLClickEvent({ row }) {           
+        cellDBLClickEvent({ row }) {
             this.formData = {
                 pn: row.pn,
                 size: row.size,
@@ -305,7 +305,7 @@ export default {
                 this.formData.audited = null
                 this.formData.auditedat = null
             } else {
-                if(this.formData!=JSON.stringify(this.formData)) {
+                if(this.formDataTemp!=JSON.stringify(this.formData)) {
                     this.$message({ message: '数据已修改, 请保存后审核', type: 'warning'})
                     return
                 }
@@ -373,7 +373,7 @@ export default {
                     this.formData.name = null
                     this.formData.model = null
                     this.formData.namedesc = null
-                    this.$message({ message: '料号不存在', type: 'warning' })
+                    this.$message({ message: '料号不存在, 请刷新后再试', type: 'warning' })
                 }
                 if(!this.isEdit) {
                     data.forEach(item => {

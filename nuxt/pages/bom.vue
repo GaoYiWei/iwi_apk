@@ -221,7 +221,7 @@ export default {
                     this.$message({ message: err, type: 'error' })
                 })
             } else {
-                this.$message({ message: '料号不存在', type: 'error' })
+                this.$message({ message: '料号不存在, 请刷新后再试', type: 'error' })
             }
         },
         async insertEvent() {
@@ -463,7 +463,7 @@ export default {
                 }
             }
             if(t.length==0) {
-                this.$message({ message: '未填写替代料', type: 'error' })
+                this.$message({ message: '未填写子料', type: 'error' })
                 return
             }
             res.push(t)
@@ -473,12 +473,12 @@ export default {
             if(!this.formData.pn) { return }
             if(!this.inventory[this.formData.pn]) {
                 this.formData.pn = null
-                this.$message({ message: '料号不存在', type: 'error' })
+                this.$message({ message: '料号不存在, 请刷新后再试', type: 'error' })
                 return
             }
             if(this.mpnList.indexOf(this.formData.pn) > -1){
                 this.formData.pn = null
-                this.$message({ message: '当前料号已存在替代料', type: 'error' })
+                this.$message({ message: '当前料号已存在BOM', type: 'error' })
                 return              
             }
             this.formData.name = this.inventory[this.formData.pn].name
@@ -488,25 +488,32 @@ export default {
         getName(row) {
             if(!row.cpn) { return }
             if(this.inventory[row.cpn]) {
-                var records = this.$refs.xTable.getTableData().tableData
-                for(var i=0;i<records.length;i++) {
-                    if(!records[i].cpn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
-                    if(records[i].cpn==this.formData.pn) {
-                        this.$message({ message: '子料与母号重复', type: 'warning' })
-                        records[i].cpn = null
-                        records[i].qty = null
-                        return
+                if(this.inventory[row.cpn].status==1||this.inventory[row.cpn].status==-1||this.ctrlDisabled.table||this.isEdit){
+                    var records = this.$refs.xTable.getTableData().tableData
+                    for(var i=0;i<records.length;i++) {
+                        if(!records[i].cpn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
+                        if(records[i].cpn==this.formData.pn) {
+                            this.$message({ message: '子料与母号重复', type: 'warning' })
+                            records[i].cpn = null
+                            records[i].qty = null
+                            return
+                        }
+                        if(row.cpn==records[i].cpn) {
+                            this.$message({ message: '重复添加', type: 'warning' })
+                            records[i].cpn = null
+                            records[i].qty = null
+                            return
+                        }                  
                     }
-                    if(row.cpn==records[i].cpn) {
-                        this.$message({ message: '重复添加', type: 'warning' })
-                        records[i].cpn = null
-                        records[i].qty = null
-                        return
-                    }                  
+                    return this.inventory[row.cpn].name
+                } else {
+                    this.$message({ message: '料号已停用', type: 'warning' })
+                    row.qty = null
+                    row.cpn = null
+                    return
                 }
-                return this.inventory[row.cpn].name
             } else {
-                this.$message({ message: '料号不存在, 请刷新页面再试', type: 'warning' })
+                this.$message({ message: '料号不存在, 请刷新后再试', type: 'warning' })
                 row.qty = null
                 row.cpn = null
                 return
