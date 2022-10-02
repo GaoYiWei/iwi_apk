@@ -339,9 +339,9 @@ export default {
             method: 'GET',
             url: '/api/partners'
         }).then(res => {
-            var vendor={id:null,abbr:null,status:null}
+            var vendor={id:null,abbr:null,status:null,cat:null}
             res.data['partners'].forEach(item => {
-                vendor={ id: item.id, abbr: item.abbr, status: item.status }
+                vendor={ id: item.id, abbr: item.abbr, status: item.status, cat: item.cat }
                 this.vendorList.push(vendor)
             })
             this.submitLoading = false

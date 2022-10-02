@@ -338,10 +338,10 @@ export default {
         this.$axios({
             method: 'GET',
             url: '/api/partners'
-        }).then(res => {
-            var buyer={id:null,abbr:null,status:null}
+        }).then(res => {           
+            var buyer={id:null,abbr:null,status:null,cat:null}
             res.data['partners'].forEach(item => {
-                buyer={ id: item.id, abbr: item.abbr, status: item.status }
+                buyer={ id: item.id, abbr: item.abbr, status: item.status, cat: item.cat }
                 this.buyerList.push(buyer)
             })
             this.submitLoading = false
@@ -368,6 +368,7 @@ export default {
                             this.formData.buyer = null
                             return
                         }
+                        console.log(this.buyerList[i])
                         if(this.buyerList[i].cat=='供应商') {
                             this.$message({ message: '此合作商类别为供应商', type: 'warning' })
                             this.formData.buyer = null
@@ -693,7 +694,7 @@ export default {
         getName(row) {
             if(!row.pn) { return }
             if(this.inventory[row.pn]) {
-                if(this.inventory[row.cpn].status==1||this.inventory[row.cpn].status==-1||this.ctrlDisabled.table||this.isEdit){
+                if(this.inventory[row.pn].status==1||this.inventory[row.pn].status==-1||this.ctrlDisabled.table||this.isEdit){
                     var records = this.$refs.xTable.getTableData().tableData
                     for(var i=0;i<records.length;i++) {
                         if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
@@ -708,7 +709,7 @@ export default {
                 } else {
                     this.$message({ message: '料号已停用', type: 'warning' })
                     row.qty = null
-                    row.cpn = null
+                    row.pn = null
                     return
                 }
             } else {

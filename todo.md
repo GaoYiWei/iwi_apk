@@ -16,7 +16,7 @@
 - 功能
 
 1. 顶部导航栏添加当前表单名 ✓
-2. 可公用数据转移至default.vue中加载到vuex, 如仓库、库存、料号、省市县(仅采购/销售加载), 库存数据新增&查找时刷新
+2. 可公用数据转移至default.vue中加载到vuex, 如仓库、库存、料号、合作商、省市县(仅采购/销售加载), 库存数据新增&查找时刷新
 3. 单表页面设置全表搜索, 分页显示, partners users inventory inventoryinfo whs departs
 4. 项目打包前清除所有console.log
 5. admin帐号限制一点登录, 防止depart&wh, id前端生成冲突
