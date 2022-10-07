@@ -147,7 +147,8 @@ export default {
                 deleteBtn: true,
                 editBtn: true,
                 table: true
-            }
+            },
+            isInsert: false
         }
     },
     computed: {
@@ -211,9 +212,7 @@ export default {
                 })
         },
         async insertEvent() {
-            this.searchVal = null
-            this.submitLoading = true
-            if(this.isEdit){
+            if(this.isInsert||this.isEdit){
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
                     '提示', {
@@ -226,6 +225,9 @@ export default {
                     return
                 }
             }
+            this.searchVal = null
+            this.submitLoading = true
+            this.isInsert = true
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
@@ -387,6 +389,7 @@ export default {
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
+                                this.isInsert = false
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
@@ -422,7 +425,7 @@ export default {
         getName(row) {
             if(!row.pn) { return }
             if(this.inventory[row.pn]) {
-                if(this.inventory[row.cpn].status==1||this.inventory[row.cpn].status==-1||this.ctrlDisabled.table||this.isEdit){
+                if(this.inventory[row.pn].status==1||this.inventory[row.pn].status==-1||this.ctrlDisabled.table||this.isEdit){
                     var records = this.$refs.xTable.getTableData().tableData
                     for(var i=0;i<records.length;i++) {
                         if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
@@ -437,7 +440,7 @@ export default {
                 } else {
                     this.$message({ message: '料号已停用', type: 'warning' })
                     row.qty = null
-                    row.cpn = null
+                    row.pn = null
                     return
                 }
             } else {

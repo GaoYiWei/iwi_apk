@@ -21,13 +21,16 @@
 </template>
 
 <script>
-
+import { mapState } from 'vuex'
 export default {
     data() {
         return {
             searchVal: null,
             history: null
         }
+    },
+    computed: {
+        ...mapState(['inventory'])
     },
     mounted() {
     },

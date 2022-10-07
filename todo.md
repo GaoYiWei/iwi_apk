@@ -16,15 +16,18 @@
 - 功能
 
 1. 顶部导航栏添加当前表单名 ✓
-2. 可公用数据转移至default.vue中加载到vuex, 如仓库、库存、料号、合作商、省市县(仅采购/销售加载), 库存数据新增&查找时刷新
-3. 单表页面设置全表搜索, 分页显示, partners users inventory inventoryinfo whs departs
-4. 项目打包前清除所有console.log
-5. admin帐号限制一点登录, 防止depart&wh, id前端生成冲突
+2. 数据校验:edit-rules, 表体数字列检查
+3. 可公用数据转移至default.vue中加载到vuex, 如仓库、库存、料号、合作商、省市县(仅采购/销售加载), 库存数据新增&查找时刷新
+4. 单表页面设置全表搜索, 分页显示, partners users inventory inventoryinfo whs departs
+5. admin帐号限制单点登录, 防止depart&wh, id前端生成冲突; 待办事项提醒
 6. 单据查找; <https://vxetable.cn/v3/#/table/grid/edit>
 7. 打印模板设置
-8. 物料计划, 生成计划前使用CALL updatestatus更新BOM层级
+8. 物料计划, 生成计划前使用CALL updatestatus更新BOM层级; 计划审核后自动生成相应单据
 9. 库存使用redis, 数据结构 {仓库: {料号: 库存}}
 10. 增加存储过程: 停用的物料在替代料中停用, 物料档案banEvent中触发
+11. 拆解单审核后自动生成入库单
+12. UI优化
+13. 清除console.log
 
 - 权限
 
@@ -40,7 +43,7 @@
     1. 函数冗余
     2. 完善res.data!='OK'情况 ✓
     3. 物料状态检查 ✓
-    4. 编辑状态检查, 新增提示
+    4. 编辑状态检查, 新增提示 ✓
     5. 增删改查, 删除前检查状态码
     6. 状态关联, 状态码
     7. 存储过程
@@ -54,15 +57,15 @@
     7. bom ✓ 1 2 3 4 5
     8. substitute ✓ 1 2 3 4 5
     9. po ✓ 1 2 3 4 5
-    10. so
-    11. borrow
-    12. producewh
-    13. picklist
-    14. receipt
-    15. delivery
-    16. transfer
-    17. disassemb
-    18. sbntrace
+    10. so ✓ 1 2 3 4 5
+    11. borrow ✓ 1 2 3 4 5
+    12. producewh ✓ 1 2 3 4 5
+    13. picklist ✓ 1 2 3 4 5
+    14. sbntrace ✓
+    15. disassemb ✓ 1 2 3 4 5
+    16. receipt
+    17. delivery
+    18. transfer
 
 ## app
 

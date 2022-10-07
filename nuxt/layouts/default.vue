@@ -186,6 +186,7 @@ export default {
         }
     },
     mounted() {
+        console.log(this.$route.name)
         if(localStorage.getItem('user')) {
             this.$store.commit('setUser', JSON.parse(localStorage.getItem('user')))
             this.getInventory()
@@ -261,6 +262,7 @@ export default {
                             localStorage.setItem('token', res.data.token)
                             localStorage.setItem('user', JSON.stringify(res.data.user))
                             this.$message({ type: 'success', message: '登录成功' })
+                            this.$router.push({ name: this.$route.name })
                             this.getInventory()
                             this.showLoginForm = false
                         } else {

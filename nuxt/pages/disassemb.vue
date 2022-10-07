@@ -63,7 +63,7 @@
                 <vxe-column field="wh" title="仓库" :edit-render="{}" width="120">
                     <template #edit="{ row }">
                         <vxe-select v-model="row.wh" type="text">
-                            <vxe-option v-for="item in whList" :value="item" :label="item" :key="row.pn"></vxe-option>
+                            <vxe-option v-for="(item, index) in whList" :value="item" :label="item" :key="row.pn+index"></vxe-option>
                         </vxe-select>
                     </template>
                 </vxe-column>
@@ -166,7 +166,8 @@ export default {
                 deleteBtn: true,
                 editBtn: true,
                 table: true
-            }
+            },
+            isInsert: false
         }
     },
     computed: {
@@ -237,9 +238,7 @@ export default {
                 })
         },
         async insertEvent() {
-            this.searchVal = null
-            this.submitLoading = true
-            if(this.isEdit){
+            if(this.isInsert||this.isEdit){
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
                     '提示', {
@@ -252,6 +251,9 @@ export default {
                     return
                 }
             }
+            this.searchVal = null
+            this.submitLoading = true
+            this.isInsert = true
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
@@ -429,6 +431,7 @@ export default {
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
+                                this.isInsert = false
                                 this.$axios({
                                     method: 'POST',
                                     url: '/api/sbntrace',
@@ -449,11 +452,17 @@ export default {
             })
         },
         getData() {
-            var res=[[this.formData]], t=[], t1={id: this.formData.id}, r={}, tableData=this.$refs.xTable.getTableData().tableData       
+            var res=[[this.formData]], t=[], t1={id: this.formData.id}, r={}, tableData=this.$refs.xTable.getTableData().tableData
             for(var i=0;i<tableData.length;i++) {
                 if(!tableData[i].wh) {
                     this.$message({ message: tableData[i].pn + '未选择仓库', type: 'error' })
                     return    
+                }
+                for(var j=0;j<this.bomList.length;j++) {
+                    if(this.bomList[j].cpn==tableData[i].pn && tableData[i].qty>this.bomList[j].qty) {
+                        this.$message({ message: tableData[i].pn + '超出BOM数量', type: 'error' })
+                        return
+                    }
                 }
                 if(tableData[i].qty>=0) {     
                     r={}
@@ -461,12 +470,6 @@ export default {
                 } else if(!tableData[i].qty || tableData[i].qty<0) {
                     this.$message({ message: tableData[i].pn + '未填写有效数量', type: 'error' })
                     return
-                }
-                for(var j=0;j<this.bomList.length;j++) {
-                    if(this.bomList[j].pn==tableData[i] && tableData[i].qty>this.bomList[j].qty) {
-                        this.$message({ message: tableData[i].pn + '未填写有效数量', type: 'error' })
-                        return
-                    }
                 }
             }
             res.push(t)
@@ -479,24 +482,26 @@ export default {
                 this.info.name = this.inventory[this.formData.sbn.slice(0,9)].name
                 this.info.model = this.inventory[this.formData.sbn.slice(0,9)].model
                 this.info.namedesc = this.inventory[this.formData.sbn.slice(0,9)].namedesc
-                if(trigger=='sbnInput') {
+                
                     this.$axios({
                         method: 'GET',
                         url: '/api/bom',
                         params: { pn: this.info.pn }
                     }).then(res => {
-                        this.tableData = []
-                        this.submitLoading = false
                         this.bomList = res.data['bom_c']
-                        res.data['bom_c'].forEach(item => {
-                            this.tableData.push({pn: item.cpn, qty: item.qty})
-                        })
+                        if(trigger=='sbnInput') {
+                            this.tableData = []
+                            res.data['bom_c'].forEach(item => {
+                                this.tableData.push({pn: item.cpn, qty: item.qty})
+                            })
+                        }
+                        this.submitLoading = false
                     }).catch(err => {
                         this.ctrlDisabled = btnStatus
                         this.submitLoading = false
                         this.$message({ message: err, type: 'error' })
                     })
-                }
+                
             } else {
                 this.$message({ message: '无效的序列号', type: 'warning' })
                 this.formData.sbn = null

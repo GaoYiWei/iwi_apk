@@ -152,7 +152,8 @@ export default {
                 editBtn: true,
                 table: true
             },
-            stock: []
+            stock: [],
+            isInsert: false
         }
     },
     computed: {
@@ -223,9 +224,7 @@ export default {
                 })
         },
         async insertEvent() {
-            this.searchVal = null
-            this.submitLoading = true
-            if(this.isEdit){
+            if(this.isInsert||this.isEdit){
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
                     '提示', {
@@ -238,6 +237,9 @@ export default {
                     return
                 }
             }
+            this.searchVal = null
+            this.submitLoading = true
+            this.isInsert = true
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
@@ -416,6 +418,7 @@ export default {
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
+                                this.isInsert = false
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus

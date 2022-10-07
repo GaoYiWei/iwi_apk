@@ -164,7 +164,8 @@ export default {
                 banBtn: true,
                 editBtn: true,
                 table: true
-            }
+            },
+            isInsert: false
         }
     },
     computed: {
@@ -225,20 +226,7 @@ export default {
             }
         },
         async insertEvent() {
-            this.submitLoading = true
-            this.$axios({
-                method: 'GET',
-                url: '/api/bom',
-            }).then(res => {
-                this.mpnList = []
-                res.data['bom_m'].forEach(item => {
-                    this.mpnList.push(item.pn)
-                })
-            }).catch(err => {
-                this.submitLoading = false
-                this.$message({ message: err, type: 'error' })
-            })
-            if(this.isEdit){
+            if(this.isInsert||this.isEdit){
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
                     '提示', {
@@ -251,6 +239,20 @@ export default {
                     return
                 }
             }
+            this.submitLoading = true
+            this.isInsert = true
+            this.$axios({
+                method: 'GET',
+                url: '/api/bom',
+            }).then(res => {
+                this.mpnList = []
+                res.data['bom_m'].forEach(item => {
+                    this.mpnList.push(item.pn)
+                })
+            }).catch(err => {
+                this.submitLoading = false
+                this.$message({ message: err, type: 'error' })
+            })
             this.mpnDisabled = false
             this.$nuxt.$emit('btnCtrl', 'add', res => {
                 this.ctrlDisabled = res
@@ -405,6 +407,7 @@ export default {
                     this.submitLoading = false
                     if(res.data=='OK') {
                         this.$message({ message: '保存成功', type: 'success' })
+                        this.isInsert = false
                     } else {
                         this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus

@@ -284,7 +284,8 @@ export default {
             provinceList: [],
             vendorList: [],
             cneeList: {},
-            contractList: []
+            contractList: [],
+            isInsert: false
         }
     },
     computed: {
@@ -456,8 +457,22 @@ export default {
                 })
         },
         async insertEvent() {
+            if(this.isInsert||this.isEdit){
+                const confirmRes = await this.$confirm(
+                    '当前单据未保存, 是否继续?',
+                    '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                    }
+                ).catch(() => this.$message.info('已经取消新增'))
+                if(confirmRes!=='confirm') {
+                    return
+                }
+            }
             this.searchVal = null
             this.submitLoading = true
+            this.isInsert = true
             this.$axios({
                 method: 'GET',
                 url: '/api/po'
@@ -473,19 +488,6 @@ export default {
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
-            if(this.isEdit){
-                const confirmRes = await this.$confirm(
-                    '当前单据未保存, 是否继续?',
-                    '提示', {
-                    confirmButtonText: '确定',
-                    cancelButtonText: '取消',
-                    type: 'warning'
-                    }
-                ).catch(() => this.$message.info('已经取消新增'))
-                if(confirmRes!=='confirm') {
-                    return
-                }
-            }
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
@@ -660,6 +662,7 @@ export default {
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
+                                this.isInsert = false
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus

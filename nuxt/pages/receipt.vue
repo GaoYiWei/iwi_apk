@@ -71,6 +71,7 @@
                                 border
                                 stripe
                                 resizable
+                                ref="mTable"
                                 show-overflow
                                 height="660"
                                 header-align="center"
@@ -78,7 +79,11 @@
                                 :data="modalTable">
                                 <vxe-column type="seq" title="序号" width="80"></vxe-column>
                                 <vxe-column field="pn" title="料号" width="120"></vxe-column>
-                                <vxe-column field="qty" title="数量" width="120"></vxe-column>
+                                <vxe-column field="qty" title="数量" width="120">
+                                    <template #default="{ row }">
+                                        <vxe-input v-model="data.qty"></vxe-input>
+                                    </template>
+                                </vxe-column>
                                 <vxe-column field="comment" title="备注" width="180"></vxe-column>
                                 <vxe-column field="name" title="品名" width="180">
                                     <template #default="{ row }">
@@ -236,7 +241,9 @@ export default {
                 editBtn: true,
                 table: true
             },
-            showRelatedFrom: false
+            showRelatedFrom: false,
+            isInsert: false,
+            unshipedList: []
         }
     },
     computed: {
@@ -291,8 +298,11 @@ export default {
                     url: '/api/call',
                     params: { proc: proc }
                 }).then(res => {
+                    
                     if(Object.keys(res.data).length>0) {
                         this.modalTable = Object.values(res.data)
+                        console.log(this.$refs.mTable.getTableData().tableData)
+                        this.unshipedList = Object.values(res.data)
                         this.modalFormData['id'] = this.modalSearchVal
                         this.modalFormData['created'] = Object.values(res.data)[0]['created']
                         this.modalFormData['createdat'] = Object.values(res.data)[0]['createdat']
@@ -368,7 +378,14 @@ export default {
             this.formData.superiorid = this.modalFormData.id
             this.tableData = []
             this.modalTable.forEach(item => {
-                this.tableData.push({pn: item.pn, qty: item.qty})
+                this.unshipedList.forEach(val => {
+                    if(val.pn==item.pn&&val.qty<item.qty) {
+                        this.$message({ message: item.pn + '数量超出未入库数量, 已修改为未入库数量', type: 'warning' })
+                        this.tableData.push({pn: item.pn, qty: val.qty})
+                    } else if (val.pn==item.pn) {
+                        this.tableData.push({pn: item.pn, qty: item.qty})
+                    }
+                })
             })
             this.modalFormData = {
                 id: null,
@@ -420,9 +437,7 @@ export default {
                 })
         },
         async insertEvent() {
-            this.searchVal = null
-            this.submitLoading = true
-            if(this.isEdit){
+            if(this.isInsert||this.isEdit){
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
                     '提示', {
@@ -435,6 +450,9 @@ export default {
                     return
                 }
             }
+            this.searchVal = null
+            this.submitLoading = true
+            this.isInsert = true
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
@@ -600,6 +618,7 @@ export default {
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
+                                this.isInsert = false
                                 this.updateStatus(-1)
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
@@ -636,7 +655,7 @@ export default {
         getName(row) {
             if(!row.pn) { return }
             if(this.inventory[row.pn]) {
-                if(this.inventory[row.cpn].status==1||this.inventory[row.cpn].status==-1||this.ctrlDisabled.table||this.isEdit){
+                if(this.inventory[row.pn].status==1||this.inventory[row.pn].status==-1||this.ctrlDisabled.table||this.isEdit){
                     var records = this.$refs.xTable.getTableData().tableData
                     for(var i=0;i<records.length;i++) {
                         if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
@@ -651,7 +670,7 @@ export default {
                 } else {
                     this.$message({ message: '料号已停用', type: 'warning' })
                     row.qty = null
-                    row.cpn = null
+                    row.pn = null
                     return
                 }
             } else {

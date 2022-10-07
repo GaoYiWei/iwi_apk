@@ -20,6 +20,7 @@
 1. 入库单: 采购入库可分批, 其余认定一次性入库
 2. 出库单: 销售出库可分批, 其余认定一次性出库
 3. 合作商&部门&用户&仓库无需审核, 通过状态码限制不允许删除
+4. 生产领料单: 计划性生产在计划审核时自动生成领料单推送至仓库, 其余手动下单
 
 ## 编码
 
@@ -60,13 +61,14 @@
 
     ```sql
     DELIMITER $$
-    CREATE DEFINER=`sa`@`%` PROCEDURE `pounshiped`(in id varchar(10))
+    CREATE DEFINER=`sa`@`%` PROCEDURE `pounshiped`(in orderid varchar(10))
     BEGIN
-        SELECT p.pn, p.qty-IFNULL(d.delivery,0) AS todelivery FROM
-        (SELECT pn, qty FROM `po_c` WHERE id=id) AS p LEFT JOIN 
-        (SELECT pn, SUM(qty) AS delivery FROM `receipt_c` WHERE id IN (SELECT id FROM `receipt_m` WHERE superiorid=id AND cat='采购入库')) AS d 
+        SELECT created, createdat, comment, p.pn, p.qty-IFNULL(d.delivery,0) AS qty FROM
+        (SELECT created, createdat,`po_m`.comment, pn, qty FROM `po_c` LEFT JOIN `po_m` ON `po_c`.id=`po_m`.id WHERE `po_m`.id=orderid) AS p LEFT JOIN 
+        (SELECT pn, SUM(qty) AS delivery FROM `receipt_c` WHERE id IN (SELECT id FROM `receipt_m` WHERE superiorid=orderid AND cat='采购入库')) AS d 
         ON p.pn=d.pn;
-    END
+    END;$$
+    DELIMITER ;
     ```
 
    - 获取销售未出库数量
