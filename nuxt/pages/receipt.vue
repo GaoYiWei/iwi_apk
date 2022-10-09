@@ -79,11 +79,7 @@
                                 :data="modalTable">
                                 <vxe-column type="seq" title="序号" width="80"></vxe-column>
                                 <vxe-column field="pn" title="料号" width="120"></vxe-column>
-                                <vxe-column field="qty" title="数量" width="120">
-                                    <template #default="{ row }">
-                                        <vxe-input v-model="data.qty"></vxe-input>
-                                    </template>
-                                </vxe-column>
+                                <vxe-column field="qty" title="数量" width="120"></vxe-column>
                                 <vxe-column field="comment" title="备注" width="180"></vxe-column>
                                 <vxe-column field="name" title="品名" width="180">
                                     <template #default="{ row }">
@@ -116,7 +112,7 @@
                 </template>
             </vxe-form-item>
         </vxe-form>
-        <div style="border:1px lightgray solid" :class="{ 'readonly': ctrlDisabled.table }">
+        <div style="border:1px lightgray solid" :class="{ 'readonly': ctrlDisabled.table || formData.cat!='采购入库' }">
             <vxe-toolbar style="padding-left:10px">
                 <template #buttons>
                 <vxe-button type="text" size="mini" icon="fa vxe-icon-add" @click="insertRowEvent()">新增</vxe-button>
@@ -298,10 +294,8 @@ export default {
                     url: '/api/call',
                     params: { proc: proc }
                 }).then(res => {
-                    
                     if(Object.keys(res.data).length>0) {
                         this.modalTable = Object.values(res.data)
-                        console.log(this.$refs.mTable.getTableData().tableData)
                         this.unshipedList = Object.values(res.data)
                         this.modalFormData['id'] = this.modalSearchVal
                         this.modalFormData['created'] = Object.values(res.data)[0]['created']
@@ -358,6 +352,10 @@ export default {
                         this.$message({ message: '没有找到记录', type: 'warning' })
                         return
                     }
+                    if(res.data['so_m'][0]['cat']!='退货') {
+                        this.$message({ message: '当前单据类型为 ' + res.data['so_m'][0]['cat'], type: 'warning' })
+                        return
+                    }
                     if(res.data['so_m'][0]['status']==-1) {
                         this.$message({ message: '当前销售单已入库', type: 'warning' })
                         return
@@ -377,22 +375,15 @@ export default {
         getModalData() {
             this.formData.superiorid = this.modalFormData.id
             this.tableData = []
-            this.modalTable.forEach(item => {
-                this.unshipedList.forEach(val => {
-                    if(val.pn==item.pn&&val.qty<item.qty) {
-                        this.$message({ message: item.pn + '数量超出未入库数量, 已修改为未入库数量', type: 'warning' })
-                        this.tableData.push({pn: item.pn, qty: val.qty})
-                    } else if (val.pn==item.pn) {
-                        this.tableData.push({pn: item.pn, qty: item.qty})
-                    }
-                })
-            })
             this.modalFormData = {
                 id: null,
                 created: null,
                 createdat: null,
                 comment: null
             }
+            this.modalTable.forEach(item => {
+                this.tableData.push({pn: item.pn, qty: item.qty})
+            })
             this.modalTable = []
             this.showRelatedFrom = false
         },
@@ -441,9 +432,9 @@ export default {
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
                     '提示', {
-                    confirmButtonText: '确定',
-                    cancelButtonText: '取消',
-                    type: 'warning'
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
                     }
                 ).catch(() => this.$message.info('已经取消新增'))
                 if(confirmRes!=='confirm') {
@@ -524,7 +515,7 @@ export default {
                         }
                         this.$refs.xTable.remove()
                         this.$message({ message: '删除成功', type: 'success' })
-                        this.updateStatus(1)
+                        this.updateStatus('del')
                     } else {
                         this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
@@ -575,7 +566,7 @@ export default {
         },
         saveEvent() {
             this.searchVal = null
-            this.$refs['receiptForm'].validate((valid) => {
+            this.$refs['receiptForm'].validate(async valid => {
                 if(!valid) {
                     var data = this.getData()
                     var btnStatus = this.ctrlDisabled
@@ -600,6 +591,7 @@ export default {
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.isEdit = false
+                                this.updateStatus()
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
@@ -609,7 +601,26 @@ export default {
                             this.submitLoading = false
                             this.$message({ message: err, type: 'error' })
                         })
-                    } else {
+                    } else {                        
+                        if(this.formData.cat=='采购入库'){
+                            var c=await this.checkQty()
+                            if(!c) {
+                                const confirmRes = await this.$confirm(
+                                    '当前单据超数量入库, 是否继续?',
+                                    '提示', {
+                                        confirmButtonText: '确定',
+                                        cancelButtonText: '取消',
+                                        type: 'warning'
+                                    }
+                                ).catch(() => {
+                                    this.ctrlDisabled = btnStatus
+                                    this.$message.info('已取消保存')
+                                })
+                                if(confirmRes!=='confirm') {
+                                    return
+                                }
+                            }     
+                        }
                         this.$axios({
                             method: 'POST',
                             url: '/api/receipt',
@@ -619,7 +630,7 @@ export default {
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.isInsert = false
-                                this.updateStatus(-1)
+                                this.updateStatus()
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
@@ -651,6 +662,29 @@ export default {
             }
             res.push(t)
             return res
+        },
+        async checkQty() {
+            var isOver=true
+            var res=await this.$axios({
+                method: 'GET',
+                url: '/api/call',
+                params: { proc: 'CALL pounshiped("' + this.formData.superiorid + '");' }
+            }).catch(err => {
+                this.$message({ message: err, type: 'error' })
+            })
+            if(Object.keys(res.data).length>0) {
+                var tableData=this.$refs.xTable.getTableData().tableData, unshiped=Object.values(res.data)              
+                for(var i=0;i<tableData.length;i++) {
+                    for(var j=0;j<unshiped.length;j++) {
+                        if(tableData[i].pn==unshiped[j].pn && unshiped[j].qty<tableData[i].qty) {
+                            isOver = false
+                        }
+                    }
+                }
+            } else {
+                isOver = false
+            }
+            return isOver
         },
         getName(row) {
             if(!row.pn) { return }
@@ -707,28 +741,52 @@ export default {
         insertRowEvent() {
             this.$refs.xTable.insertAt({},-1)
         },
-        updateStatus(s) {
-            var data = { w: { id: this.formData.superiorid }, v: { status: s } }, msg='已入库'
-            if(s==1) {
-                msg = '审核'
+        updateStatus(caller) {
+            var data = { w: { id: this.formData.superiorid }, v: { status: null } }, msg='已入库'
+            if(caller=='del') {
+                data['v']['status'] = 1
+                msg = '待入库'
+            } else {
+                data['v']['status'] = -1
             }
             if(this.formData.cat=='采购入库') {
                 this.$axios({
-                    method: 'PATCH',
-                    url: '/api/po',
-                    params: data
+                    method: 'GET',
+                    url: '/api/call',
+                    params: { proc: 'CALL pounshiped("' + this.formData.superiorid + '");' }
                 }).then(res => {
-                    if(res.data=='OK') {
-                        this.$message({ message: '已变更采购单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                    if(Object.keys(res.data).length>0) {
+                        var r=0
+                        Object.values(res.data).forEach(item => {
+                            r = r + item['shiped']
+                        })
+                        if(r!=0) {
+                            data['v']['status'] = 1
+                            msg = '已审核'
+                        }
                     } else {
-                        this.$message({ message: res.data, type: 'error' })
+                        data['v']['status'] = -1
+                        msg = '已完结'
                     }
+                    this.$axios({
+                        method: 'PATCH',
+                        url: '/api/po',
+                        params: data
+                    }).then(res => {
+                        if(res.data=='OK') {
+                            this.$message({ message: '已变更采购单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                        } else {
+                            this.$message({ message: res.data, type: 'error' })
+                        }
+                    }).catch(err => {
+                        this.$message({ message: err, type: 'error' })
+                    })
                 }).catch(err => {
                     this.$message({ message: err, type: 'error' })
                 })
             } else if(this.formData.cat=='生产入库') {
                 this.$axios({
-                    method: 'GET',
+                    method: 'PATCH',
                     url: '/api/producewh',
                     params: data
                 }).then(res => {
@@ -743,7 +801,7 @@ export default {
                 })
             } else if(this.formData.cat=='销售退货') {
                 this.$axios({
-                    method: 'GET',
+                    method: 'PATCH',
                     url: '/api/so',
                     params: data
                 }).then(res => {

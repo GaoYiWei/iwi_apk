@@ -55,7 +55,7 @@ export default {
     },
     proxy: {
         '/api': {
-            target: 'http://192.168.0.137:9999', // express服务地址
+            target: 'http://192.168.0.13:9999', // express服务地址
             changeOrigin: true,
             pathRewrite: { '^/api': ''}
         }

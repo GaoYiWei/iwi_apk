@@ -17,8 +17,8 @@
 
 ## 业务逻辑
 
-1. 入库单: 采购入库可分批, 其余认定一次性入库
-2. 出库单: 销售出库可分批, 其余认定一次性出库
+1. 入库单: 采购入库可分批, 其余认定一次性入库, 生成入库单时计算的未入库数量将未审核的单据视为入库
+2. 出库单: 销售出库可分批, 其余认定一次性出库, 生成出库单时计算的未入库数量将未审核的单据视为出库
 3. 合作商&部门&用户&仓库无需审核, 通过状态码限制不允许删除
 4. 生产领料单: 计划性生产在计划审核时自动生成领料单推送至仓库, 其余手动下单
 
@@ -63,10 +63,11 @@
     DELIMITER $$
     CREATE DEFINER=`sa`@`%` PROCEDURE `pounshiped`(in orderid varchar(10))
     BEGIN
-        SELECT created, createdat, comment, p.pn, p.qty-IFNULL(d.delivery,0) AS qty FROM
-        (SELECT created, createdat,`po_m`.comment, pn, qty FROM `po_c` LEFT JOIN `po_m` ON `po_c`.id=`po_m`.id WHERE `po_m`.id=orderid) AS p LEFT JOIN 
-        (SELECT pn, SUM(qty) AS delivery FROM `receipt_c` WHERE id IN (SELECT id FROM `receipt_m` WHERE superiorid=orderid AND cat='采购入库')) AS d 
-        ON p.pn=d.pn;
+        SELECT created, createdat,mcomment,comment, p.pn, p.qty-IFNULL(d.delivery,0) AS qty, IF(d.delivery IS NULL, false, true) AS shiped FROM
+        (SELECT created, createdat,`po_m`.comment AS mcomment,`po_c`.comment, pn, qty FROM `po_c` LEFT JOIN `po_m` ON `po_c`.id=`po_m`.id WHERE `po_m`.id=orderid) AS p LEFT JOIN 
+        (SELECT pn, SUM(qty) AS delivery FROM `receipt_c` WHERE id IN (SELECT id FROM `receipt_m` WHERE superiorid=orderid AND cat='采购入库') GROUP BY pn) AS d 
+        ON p.pn=d.pn
+        WHERE p.qty>IFNULL(d.delivery,0);
     END;$$
     DELIMITER ;
     ```
@@ -77,7 +78,11 @@
     DELIMITER $$
     CREATE DEFINER=`sa`@`%` PROCEDURE `sounshiped`(in orderid varchar(10))
     BEGIN
-        SELECT p.created,p.createdat,mcomment,ccomment,p.pn, p.qty-IFNULL(d.delivery,0) AS qty FROM (SELECT created,createdat,`so_m`.comment AS mcomment,`so_c`.comment AS ccomment,pn, qty FROM `so_c` LEFT JOIN `so_m` ON `so_c`.id=`so_m`.id WHERE `so_m`.id=orderid) AS p LEFT JOIN (SELECT pn, SUM(qty) AS delivery FROM `delivery_c` WHERE id IN (SELECT id FROM `delivery_m` WHERE superiorid=orderid AND cat='销售出库')) AS d ON p.pn=d.pn WHERE p.qty>IFNULL(d.delivery,0);
+        SELECT p.created,p.createdat,mcomment,comment,p.pn, p.qty-IFNULL(d.delivery,0) AS qty, IF(d.delivery IS NULL, false, true) AS shiped FROM
+        (SELECT created,createdat,`so_m`.comment AS mcomment,`so_c`.comment, pn, qty FROM `so_c` LEFT JOIN `so_m` ON `so_c`.id=`so_m`.id WHERE `so_m`.id=orderid) AS p LEFT JOIN 
+        (SELECT pn, SUM(qty) AS delivery FROM `delivery_c` WHERE id IN (SELECT id FROM `delivery_m` WHERE superiorid=orderid AND cat='销售出库') GROUP BY pn) AS d 
+        ON p.pn=d.pn 
+        WHERE p.qty>IFNULL(d.delivery,0);
     END;$$
     DELIMITER ;
     ```

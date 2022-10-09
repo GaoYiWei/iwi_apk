@@ -238,7 +238,8 @@ export default {
             },
             showRelatedFrom: false,
             stock: [],
-            isInsert: false
+            isInsert: false,
+            unshipedList: []
         }
     },
     computed: {
@@ -295,6 +296,7 @@ export default {
                 }).then(res => {
                     if(Object.keys(res.data).length>0) {
                         this.modalTable = Object.values(res.data)
+                        this.unshipedList = Object.values(res.data)
                         this.modalFormData['id'] = this.modalSearchVal
                         this.modalFormData['created'] = Object.values(res.data)[0]['created']
                         this.modalFormData['createdat'] = Object.values(res.data)[0]['createdat']
@@ -323,11 +325,11 @@ export default {
                         return
                     }
                     if(!res.data['picklist_m'][0]['audited']) {
-                        this.$message({ message: '当前生产入库单未审核', type: 'warning' })
+                        this.$message({ message: '当前生产领料单未审核', type: 'warning' })
                         return
                     }
                     if(res.data['picklist_m'][0]['status']==-1) {
-                        this.$message({ message: '当前生产入库单已入库', type: 'warning' })
+                        this.$message({ message: '当前生产领料单已出库', type: 'warning' })
                         return
                     }
                     this.modalTable = res.data['picklist_c']
@@ -350,6 +352,10 @@ export default {
                         this.$message({ message: '没有找到记录', type: 'warning' })
                         return
                     }
+                    if(res.data['po_m'][0]['cat']!='退货') {
+                        this.$message({ message: '当前单据类型为 ' + res.data['po_m'][0]['cat'], type: 'warning' })
+                        return
+                    }
                     if(res.data['po_m'][0]['status']==-1) {
                         this.$message({ message: '当前采购单已出库', type: 'warning' })
                         return
@@ -369,15 +375,15 @@ export default {
         getModalData() {
             this.formData.superiorid = this.modalFormData.id
             this.tableData = []
-            this.modalTable.forEach(item => {
-                this.tableData.push({pn: item.pn, qty: item.qty})
-            })
             this.modalFormData = {
                 id: null,
                 created: null,
                 createdat: null,
                 comment: null
             }
+            this.modalTable.forEach(item => {
+                this.tableData.push({pn: item.pn, qty: item.qty})
+            })
             this.modalTable = []
             this.showRelatedFrom = false
         },
@@ -427,9 +433,9 @@ export default {
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
                     '提示', {
-                    confirmButtonText: '确定',
-                    cancelButtonText: '取消',
-                    type: 'warning'
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
                     }
                 ).catch(() => this.$message.info('已经取消新增'))
                 if(confirmRes!=='confirm') {
@@ -500,7 +506,6 @@ export default {
                             wh: null,
                             cat: null,
                             comment: null,
-                            status: 0,
                             superiorid: null,
                             created: null,
                             createdat: null,
@@ -511,7 +516,7 @@ export default {
                         }
                         this.$refs.xTable.remove()
                         this.$message({ message: '删除成功', type: 'success' })
-                        this.updateStatus(1)
+                        this.updateStatus('del')
                     } else {
                         this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
@@ -561,7 +566,6 @@ export default {
                     this.$message({ message: msg, type: 'success' })
                     this.formData.audited = audited
                     this.formData.auditedat = auditedat
-                    this.formData.status = status
                 } else {
                     this.$message({ message: res.data, type: 'error' })
                     this.ctrlDisabled = btnStatus
@@ -574,7 +578,7 @@ export default {
         },
         saveEvent() {
             this.searchVal = null
-            this.$refs['deliverForm'].validate((valid) => {
+            this.$refs['deliverForm'].validate(async valid => {
                 if(!valid) {
                     var data = this.getData()
                     var btnStatus = this.ctrlDisabled
@@ -599,6 +603,7 @@ export default {
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.isEdit = false
+                                this.updateStatus()
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
@@ -609,6 +614,23 @@ export default {
                             this.$message({ message: err, type: 'error' })
                         })
                     } else {
+                        var c=await this.checkQty()
+                        if(!c&&this.formData.cat=='销售出库') {
+                            const confirmRes = await this.$confirm(
+                                '当前单据超数量出库, 是否继续?',
+                                '提示', {
+                                    confirmButtonText: '确定',
+                                    cancelButtonText: '取消',
+                                    type: 'warning'
+                                }
+                            ).catch(() => {
+                                this.ctrlDisabled = btnStatus
+                                this.$message.info('已取消保存')
+                            })
+                            if(confirmRes!=='confirm') {
+                                return
+                            }
+                        }
                         this.$axios({
                             method: 'POST',
                             url: '/api/delivery',
@@ -638,12 +660,6 @@ export default {
             for(var i=0;i<tableData.length;i++) {
                 if(tableData[i].pn && tableData[i].qty>0) {     
                     r={}
-                    this.stock.forEach(item => {
-                        if(item.wh==this.formData.wh && item.pn==tableData[i].pn && item.stock<tableData[i].qty) {
-                            this.$message({ message: pn + '库存不足, 库存' + item.stock, type: 'warning' })
-                            return
-                        }
-                    })
                     t.push(Object.assign(r, t1, tableData[i]))
                 } else if(tableData[i].pn && !tableData[i].qty || tableData[i].pn && tableData[i].qty<=0) {
                     this.$message({ message: tableData[i].pn + '未填写有效数量', type: 'error' })
@@ -651,16 +667,44 @@ export default {
                 }
             }
             if(t.length==0) {
-                this.$message({ message: '未填写入库明细', type: 'error' })
+                this.$message({ message: '未填写出库明细', type: 'error' })
                 return
             }
             res.push(t)
             return res
         },
+        async checkQty() {            
+            if(this.formData.cat=='销售出库') {
+                var isOver=true
+                var res=await this.$axios({
+                    method: 'GET',
+                    url: '/api/call',
+                    params: { proc: 'CALL sounshiped("' + this.formData.superiorid + '");' }
+                }).catch(err => {
+                    this.$message({ message: err, type: 'error' })
+                })
+                if(Object.keys(res.data).length>0) {
+                    var tableData=this.$refs.xTable.getTableData().tableData, unshiped=Object.values(res.data)
+                    console.log(tableData, unshiped)
+                    for(var i=0;i<tableData.length;i++) {
+                        for(var j=0;j<unshiped.length;j++) {                            
+                            if(tableData[i].pn==unshiped[j].pn && unshiped[j].qty<tableData[i].qty) {
+                                isOver = false
+                            }
+                        }
+                    }
+                } else {
+                    isOver = false
+                }
+                return isOver
+            } else {
+                
+            }
+        },
         getName(row) {
             if(!row.pn) { return }
             if(this.inventory[row.pn]) {
-                if(this.inventory[row.cpn].status==1||this.inventory[row.cpn].status==-1||this.ctrlDisabled.table||this.isEdit){
+                if(this.inventory[row.pn].status==1||this.inventory[row.pn].status==-1||this.ctrlDisabled.table||this.isEdit){
                     var records = this.$refs.xTable.getTableData().tableData
                     for(var i=0;i<records.length;i++) {
                         if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
@@ -675,7 +719,7 @@ export default {
                 } else {
                     this.$message({ message: '料号已停用', type: 'warning' })
                     row.qty = null
-                    row.cpn = null
+                    row.pn = null
                     return
                 }
             } else {
@@ -712,28 +756,52 @@ export default {
         insertRowEvent() {
             this.$refs.xTable.insertAt({},-1)
         },
-        updateStatus(s) {
-            var data = { w: { id: this.formData.superiorid }, v: { status: s } }, msg='已入库'
-            if(s==1) {
-                msg = '审核'
+        updateStatus(caller) {
+            var data = { w: { id: this.formData.superiorid }, v: { status: null } }, msg='已出库'
+            if(caller=='del') {
+                data['v']['status'] = 1
+                msg = '待出库'
+            } else {
+                data['v']['status'] = -1
             }
             if(this.formData.cat=='销售出库') {
                 this.$axios({
-                    method: 'PATCH',
-                    url: '/api/so',
-                    params: data
+                    method: 'GET',
+                    url: '/api/call',
+                    params: { proc: 'CALL pounshiped("' + this.formData.superiorid + '");' }
                 }).then(res => {
-                    if(res.data=='OK') {
-                        this.$message({ message: '已变更销售单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                    if(Object.keys(res.data).length>0) {
+                        var r=0
+                        Object.values(res.data).forEach(item => {
+                            r = r + item['shiped']
+                        })
+                        if(r!=0) {
+                            data['v']['status'] = 1
+                            msg = '已审核'
+                        }                        
                     } else {
-                        this.$message({ message: res.data, type: 'error' })
+                        data['v']['status'] = -1
+                        msg = '已完结'
                     }
+                    this.$axios({
+                        method: 'PATCH',
+                        url: '/api/so',
+                        params: data
+                    }).then(res => {
+                        if(res.data=='OK') {
+                            this.$message({ message: '已变更销售单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                        } else {
+                            this.$message({ message: res.data, type: 'error' })
+                        }
+                    }).catch(err => {
+                        this.$message({ message: err, type: 'error' })
+                    })
                 }).catch(err => {
                     this.$message({ message: err, type: 'error' })
                 })
             } else if(this.formData.cat=='生产领料') {
                 this.$axios({
-                    method: 'GET',
+                    method: 'PATCH',
                     url: '/api/picklist',
                     params: data
                 }).then(res => {
@@ -748,7 +816,7 @@ export default {
                 })
             } else if(this.formData.cat=='采购退货') {
                 this.$axios({
-                    method: 'GET',
+                    method: 'PATCH',
                     url: '/api/po',
                     params: data
                 }).then(res => {

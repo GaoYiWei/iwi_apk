@@ -1,8 +1,8 @@
 const { Sequelize, DataTypes } = require('sequelize')
 const conf = {
     dialect: 'mysql',
-    host: 'mandrakekunshan.f3322.net',
-    port: '5001',
+    host: '192.168.0.137',
+    port: '3306',
     logging: false,
     timezone: '+08:00',
     pool: {

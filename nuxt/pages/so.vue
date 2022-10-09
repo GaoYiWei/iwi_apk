@@ -16,6 +16,15 @@
                     <vxe-input v-model="data.id" readonly></vxe-input>
                 </template>
             </vxe-form-item>
+            <vxe-form-item title="分类" field="cat" :item-render="{}">
+                <template #default="{ data }">
+                    <vxe-select v-model="data.cat">
+                        <vxe-option value="销售" label="销售"></vxe-option>
+                        <vxe-option value="退货" label="退货"></vxe-option>
+                        <vxe-option value="借用" label="借用"></vxe-option>
+                    </vxe-select>
+                </template>
+            </vxe-form-item>
             <vxe-form-item title="合同" field="contract" :item-render="{}">
                 <template #default="{ data }">
                     <vxe-input v-model="data.contract" @blur="validContract()"></vxe-input>
@@ -29,15 +38,6 @@
             <vxe-form-item title="客户" field="buyer" :item-render="{}">
                 <template #default="{ data }">
                     <vxe-input v-model="data.buyer" placeholder="代码/简称" @blur="getBuyerEvent()"></vxe-input>
-                </template>
-            </vxe-form-item>
-            <vxe-form-item title="分类" field="cat" :item-render="{}">
-                <template #default="{ data }">
-                    <vxe-select v-model="data.cat">
-                        <vxe-option value="销售" label="销售"></vxe-option>
-                        <vxe-option value="退货" label="退货"></vxe-option>
-                        <vxe-option value="借用" label="借用"></vxe-option>
-                    </vxe-select>
                 </template>
             </vxe-form-item>
             <vxe-form-item title="收货人" field="cnee" :item-render="{}">
@@ -750,9 +750,16 @@ export default {
             this.$refs.xTable.insertAt({},-1)
         },
         validContract() {
-            if(this.contractList.indexOf(this.formData.contract)>=0) {
+            if(!this.formData.cat) {
+                this.$message({ message: '类别未选择', type: 'warning' })
+                return
+            }
+            if(this.contractList.indexOf(this.formData.contract)>=0&&this.formData.cat!='退货') {
                 this.formData.contract = null
                 this.$message({ message: '合同号已存在', type: 'warning' })
+            } else if(this.contractList.indexOf(this.formData.contract)<0&&this.formData.cat=='退货') {
+                this.formData.contract = null
+                this.$message({ message: '合同号不存在', type: 'warning' })
             }
         }
     }
