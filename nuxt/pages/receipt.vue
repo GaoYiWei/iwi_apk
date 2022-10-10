@@ -664,27 +664,29 @@ export default {
             return res
         },
         async checkQty() {
-            var isOver=true
-            var res=await this.$axios({
-                method: 'GET',
-                url: '/api/call',
-                params: { proc: 'CALL pounshiped("' + this.formData.superiorid + '");' }
-            }).catch(err => {
-                this.$message({ message: err, type: 'error' })
-            })
-            if(Object.keys(res.data).length>0) {
-                var tableData=this.$refs.xTable.getTableData().tableData, unshiped=Object.values(res.data)              
-                for(var i=0;i<tableData.length;i++) {
-                    for(var j=0;j<unshiped.length;j++) {
-                        if(tableData[i].pn==unshiped[j].pn && unshiped[j].qty<tableData[i].qty) {
-                            isOver = false
+            if(this.formData.cat=='采购入库') {
+                var isOver=true
+                var res=await this.$axios({
+                    method: 'GET',
+                    url: '/api/call',
+                    params: { proc: 'CALL pounshiped("' + this.formData.superiorid + '");' }
+                }).catch(err => {
+                    this.$message({ message: err, type: 'error' })
+                })
+                if(Object.keys(res.data).length>0) {
+                    var tableData=this.$refs.xTable.getTableData().tableData, unshiped=Object.values(res.data)              
+                    for(var i=0;i<tableData.length;i++) {
+                        for(var j=0;j<unshiped.length;j++) {
+                            if(tableData[i].pn==unshiped[j].pn && unshiped[j].qty<tableData[i].qty) {
+                                isOver = false
+                            }
                         }
                     }
+                } else {
+                    isOver = false
                 }
-            } else {
-                isOver = false
+                return isOver
             }
-            return isOver
         },
         getName(row) {
             if(!row.pn) { return }
@@ -743,12 +745,6 @@ export default {
         },
         updateStatus(caller) {
             var data = { w: { id: this.formData.superiorid }, v: { status: null } }, msg='已入库'
-            if(caller=='del') {
-                data['v']['status'] = 1
-                msg = '待入库'
-            } else {
-                data['v']['status'] = -1
-            }
             if(this.formData.cat=='采购入库') {
                 this.$axios({
                     method: 'GET',
@@ -760,7 +756,7 @@ export default {
                         Object.values(res.data).forEach(item => {
                             r = r + item['shiped']
                         })
-                        if(r!=0) {
+                        if(r==0) {
                             data['v']['status'] = 1
                             msg = '已审核'
                         }
@@ -785,6 +781,12 @@ export default {
                     this.$message({ message: err, type: 'error' })
                 })
             } else if(this.formData.cat=='生产入库') {
+                if(caller=='del') {
+                    data['v']['status'] = 1
+                    msg = '待入库'
+                } else {
+                    data['v']['status'] = -1
+                }
                 this.$axios({
                     method: 'PATCH',
                     url: '/api/producewh',
@@ -800,6 +802,12 @@ export default {
                     this.$message({ message: err, type: 'error' })
                 })
             } else if(this.formData.cat=='销售退货') {
+                if(caller=='del') {
+                    data['v']['status'] = 1
+                    msg = '待入库'
+                } else {
+                    data['v']['status'] = -1
+                }
                 this.$axios({
                     method: 'PATCH',
                     url: '/api/so',

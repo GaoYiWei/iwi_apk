@@ -422,7 +422,6 @@ export default {
                         this.ctrlDisabled.deleteBtn = false
                         this.ctrlDisabled.editBtn = false 
                     }
-                    this.getStock()
                 }).catch(err => {
                     this.submitLoading = false
                     this.$message({ message: err, type: 'error' })
@@ -470,7 +469,6 @@ export default {
                 this.$nuxt.$emit('btnCtrl', 'add', res => {
                     this.ctrlDisabled = res
                 })
-                this.getStock()
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
@@ -530,7 +528,8 @@ export default {
                 this.ctrlDisabled = btnStatus
             })
         },
-        auditEvent() {
+        async auditEvent() {
+            this.submitLoading = true
             var btnStatus = this.ctrlDisabled
             this.$nuxt.$emit('btnCtrl', this.formData.audited ? 'unaudit' : 'audit', res => {
                 this.ctrlDisabled = res
@@ -542,20 +541,14 @@ export default {
                 msg = '弃审成功'
                 status = 0
             } else {
-                var tableData=this.$refs.xTable.getTableData().tableData
-                for(var i=0;i<tableData.length;i++) {
-                    if(tableData[i].pn && tableData[i].qty>0) {
-                        this.stock.forEach(item => {
-                            if(item.wh==wh && item.pn==pn && item.stock<qty) {
-                                this.$message({ message: pn + '库存不足, 库存' + item.stock, type: 'error' })
-                                return
-                            }
-                        })
-                    }
+                var c=await this.checkStock()
+                console.log(c)
+                if(!c) {
+                    this.ctrlDisabled = btnStatus
+                    return
                 }
             }
             var data = { w: { id: this.formData.id }, v: { audited: audited, auditedat: auditedat, status: status } }
-            this.submitLoading = true
             this.$axios({
                 method: 'PATCH',
                 url: '/api/delivery',
@@ -640,7 +633,7 @@ export default {
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.isInsert = false
-                                this.updateStatus(-1)
+                                this.updateStatus()
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
@@ -673,7 +666,7 @@ export default {
             res.push(t)
             return res
         },
-        async checkQty() {            
+        async checkQty() {
             if(this.formData.cat=='销售出库') {
                 var isOver=true
                 var res=await this.$axios({
@@ -685,7 +678,6 @@ export default {
                 })
                 if(Object.keys(res.data).length>0) {
                     var tableData=this.$refs.xTable.getTableData().tableData, unshiped=Object.values(res.data)
-                    console.log(tableData, unshiped)
                     for(var i=0;i<tableData.length;i++) {
                         for(var j=0;j<unshiped.length;j++) {                            
                             if(tableData[i].pn==unshiped[j].pn && unshiped[j].qty<tableData[i].qty) {
@@ -697,8 +689,6 @@ export default {
                     isOver = false
                 }
                 return isOver
-            } else {
-                
             }
         },
         getName(row) {
@@ -757,30 +747,25 @@ export default {
             this.$refs.xTable.insertAt({},-1)
         },
         updateStatus(caller) {
-            var data = { w: { id: this.formData.superiorid }, v: { status: null } }, msg='已出库'
-            if(caller=='del') {
-                data['v']['status'] = 1
-                msg = '待出库'
-            } else {
-                data['v']['status'] = -1
-            }
+            var data = { w: { id: this.formData.superiorid }, v: { status: -1 } }, msg='已出库'
             if(this.formData.cat=='销售出库') {
                 this.$axios({
                     method: 'GET',
                     url: '/api/call',
-                    params: { proc: 'CALL pounshiped("' + this.formData.superiorid + '");' }
+                    params: { proc: 'CALL sounshiped("' + this.formData.superiorid + '");' }
                 }).then(res => {
                     if(Object.keys(res.data).length>0) {
                         var r=0
                         Object.values(res.data).forEach(item => {
                             r = r + item['shiped']
                         })
-                        if(r!=0) {
+                        if(r==0) {
                             data['v']['status'] = 1
                             msg = '已审核'
-                        }                        
+                        } else {
+                            data['v']['status'] = null
+                        }
                     } else {
-                        data['v']['status'] = -1
                         msg = '已完结'
                     }
                     this.$axios({
@@ -800,6 +785,10 @@ export default {
                     this.$message({ message: err, type: 'error' })
                 })
             } else if(this.formData.cat=='生产领料') {
+                if(caller=='del') {
+                    data['v']['status'] = 1
+                    msg = '待出库'
+                }
                 this.$axios({
                     method: 'PATCH',
                     url: '/api/picklist',
@@ -815,6 +804,10 @@ export default {
                     this.$message({ message: err, type: 'error' })
                 })
             } else if(this.formData.cat=='采购退货') {
+                if(caller=='del') {
+                    data['v']['status'] = 1
+                    msg = '待出库'
+                }
                 this.$axios({
                     method: 'PATCH',
                     url: '/api/po',
@@ -831,16 +824,28 @@ export default {
                 })
             }
         },
-        getStock() {
-            this.$axios({
+        async checkStock() {
+            var res=true
+            var res=await this.$axios({
                 method: 'GET',
                 url: '/api/call',
                 params: { proc: 'CALL getstock();' }
-            }).then(res => {
-                this.stock = Object.values(res.data)
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
-            })           
+            })
+            var tableData=this.$refs.xTable.getTableData().tableData
+            this.stock = Object.values(res.data)
+            for(var i=0;i<tableData.length;i++) {
+                if(tableData[i].pn) {
+                    this.stock.forEach(item => {
+                        if(item.wh==this.formData.wh&&item.pn==tableData[i].pn&&item.stock<tableData[i].qty) {
+                            this.$message({ message: item.pn + '库存不足, 审核失败', type: 'error'})
+                            res = false
+                        }
+                    })
+                }
+            }
+            return res
         }
     }
 }
