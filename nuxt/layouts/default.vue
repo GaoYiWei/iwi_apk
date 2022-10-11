@@ -186,7 +186,6 @@ export default {
         }
     },
     mounted() {
-        console.log(this.$route.name)
         if(localStorage.getItem('user')) {
             this.$store.commit('setUser', JSON.parse(localStorage.getItem('user')))
             this.getInventory()

@@ -499,12 +499,14 @@ export default {
                     this.submitLoading = false
                     if(res.data=='OK') {
                         this.isEdit = false
+                        this.$refs.xTable.remove()
+                        this.$message({ message: '删除成功', type: 'success' })
+                        this.updateStatus({ cat: this.formData.cat, superiorid: this.formData.superiorid, e: 'del' })
                         this.formData = {
                             id: null,
                             wh: null,
                             cat: null,
                             comment: null,
-                            status: 0,
                             superiorid: null,
                             created: null,
                             createdat: null,
@@ -513,9 +515,6 @@ export default {
                             audited: null,
                             auditedat: null
                         }
-                        this.$refs.xTable.remove()
-                        this.$message({ message: '删除成功', type: 'success' })
-                        this.updateStatus('del')
                     } else {
                         this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
@@ -534,11 +533,11 @@ export default {
             this.$nuxt.$emit('btnCtrl', this.formData.audited ? 'unaudit' : 'audit', res => {
                 this.ctrlDisabled = res
             })
-            var audited=this.$store.state.user.name, auditedat=new Date().toLocaleString('chinese', { hour12: false }), msg='审核成功',status=1
+            var audited=this.$store.state.user.name, auditedat=new Date().toLocaleString('chinese', { hour12: false }), msg='已审核',status=1
             if(this.formData.audited) {
                 audited = null
                 auditedat = null
-                msg = '弃审成功'
+                msg = '已弃审'
                 status = 0
             }
             var data = { w: { id: this.formData.id }, v: { audited: audited, auditedat: auditedat, status: status } }
@@ -591,7 +590,7 @@ export default {
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.isEdit = false
-                                this.updateStatus()
+                                this.updateStatus({ cat: this.formData.cat, superiorid: this.formData.superiorid })
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
@@ -630,7 +629,7 @@ export default {
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.isInsert = false
-                                this.updateStatus()
+                                this.updateStatus({ cat: this.formData.cat, superiorid: this.formData.superiorid })
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
@@ -743,13 +742,13 @@ export default {
         insertRowEvent() {
             this.$refs.xTable.insertAt({},-1)
         },
-        updateStatus(caller) {
-            var data = { w: { id: this.formData.superiorid }, v: { status: null } }, msg='已入库'
-            if(this.formData.cat=='采购入库') {
+        updateStatus(param) {
+            var data = { w: { id: param.superiorid }, v: { status: -1 } }, msg='已完结'
+            if(param.cat=='采购入库') {
                 this.$axios({
                     method: 'GET',
                     url: '/api/call',
-                    params: { proc: 'CALL pounshiped("' + this.formData.superiorid + '");' }
+                    params: { proc: 'CALL pounshiped("' + param.superiorid + '");' }
                 }).then(res => {
                     if(Object.keys(res.data).length>0) {
                         var r=0
@@ -758,11 +757,11 @@ export default {
                         })
                         if(r==0) {
                             data['v']['status'] = 1
-                            msg = '已审核'
+                            msg = '待出库'
+                        } else {
+                            data['v']['status'] = null
+                            msg = '已出库'
                         }
-                    } else {
-                        data['v']['status'] = -1
-                        msg = '已完结'
                     }
                     this.$axios({
                         method: 'PATCH',
@@ -770,7 +769,7 @@ export default {
                         params: data
                     }).then(res => {
                         if(res.data=='OK') {
-                            this.$message({ message: '已变更采购单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                            this.$message({ message: '已变更采购单' + param.superiorid + '状态为' + msg, type: 'success' })
                         } else {
                             this.$message({ message: res.data, type: 'error' })
                         }
@@ -780,12 +779,10 @@ export default {
                 }).catch(err => {
                     this.$message({ message: err, type: 'error' })
                 })
-            } else if(this.formData.cat=='生产入库') {
-                if(caller=='del') {
+            } else if(param.cat=='生产入库') {
+                if(param.e) {
                     data['v']['status'] = 1
                     msg = '待入库'
-                } else {
-                    data['v']['status'] = -1
                 }
                 this.$axios({
                     method: 'PATCH',
@@ -793,7 +790,7 @@ export default {
                     params: data
                 }).then(res => {
                     if(res.data=='OK') {
-                        this.$message({ message: '已变更生产入库单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                        this.$message({ message: '已变更生产入库单' + param.superiorid + '状态为' + msg, type: 'success' })
                     } else {
                         this.$message({ message: res.data, type: 'error' })
                     }
@@ -801,12 +798,10 @@ export default {
                     this.submitLoading = false
                     this.$message({ message: err, type: 'error' })
                 })
-            } else if(this.formData.cat=='销售退货') {
-                if(caller=='del') {
+            } else if(param.cat=='销售退货') {
+                if(param.e) {
                     data['v']['status'] = 1
                     msg = '待入库'
-                } else {
-                    data['v']['status'] = -1
                 }
                 this.$axios({
                     method: 'PATCH',
@@ -814,7 +809,7 @@ export default {
                     params: data
                 }).then(res => {
                     if(res.data=='OK') {
-                        this.$message({ message: '已变更销售单' + this.formData.superiorid + '状态为' + msg, type: 'success' })
+                        this.$message({ message: '已变更销售单' + param.superiorid + '状态为' + msg, type: 'success' })
                     } else {
                         this.$message({ message: res.data, type: 'error' })
                     }

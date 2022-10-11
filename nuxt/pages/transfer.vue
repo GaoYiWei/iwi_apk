@@ -217,7 +217,6 @@ export default {
                         this.ctrlDisabled.deleteBtn = false
                         this.ctrlDisabled.editBtn = false 
                     }
-                    this.getStock()
                 }).catch(err => {
                     this.submitLoading = false
                     this.$message({ message: err, type: 'error' })
@@ -264,7 +263,6 @@ export default {
                 this.$nuxt.$emit('btnCtrl', 'add', res => {
                     this.ctrlDisabled = res
                 })
-                this.getStock()
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
@@ -323,28 +321,22 @@ export default {
                 this.ctrlDisabled = btnStatus
             })
         },
-        auditEvent() {
+        async auditEvent() {
             var btnStatus = this.ctrlDisabled
             this.$nuxt.$emit('btnCtrl', this.formData.audited ? 'unaudit' : 'audit', res => {
                 this.ctrlDisabled = res
             })
-            var audited=this.$store.state.user.name, auditedat=new Date().toLocaleString('chinese', { hour12: false }), msg='审核成功',status=1
+            var audited=this.$store.state.user.name, auditedat=new Date().toLocaleString('chinese', { hour12: false }), msg='已审核',status=1
             if(this.formData.audited) {
                 audited = null
                 auditedat = null
-                msg = '弃审成功'
+                msg = '已弃审'
                 status = 0
             } else {
-                var tableData=this.$refs.xTable.getTableData().tableData
-                for(var i=0;i<tableData.length;i++) {
-                    if(tableData[i].pn && tableData[i].qty>0) {
-                        this.stock.forEach(item => {
-                            if(item.wh==wh && item.pn==pn && item.stock<qty) {
-                                this.$message({ message: pn + '库存不足, 库存' + item.stock, type: 'error' })
-                                return
-                            }
-                        })
-                    }
+                var c=await this.checkStock()
+                if(!c) {
+                    this.ctrlDisabled = btnStatus
+                    return
                 }
             }
             var data = { w: { id: this.formData.id }, v: { audited: audited, auditedat: auditedat, status: status } }
@@ -438,12 +430,6 @@ export default {
             for(var i=0;i<tableData.length;i++) {
                 if(tableData[i].pn && tableData[i].qty>0) {     
                     r={}
-                    this.stock.forEach(item => {
-                        if(item.wh==this.formData.wh && item.pn==tableData[i].pn && item.stock<tableData[i].qty) {
-                            this.$message({ message: pn + '库存不足, 库存' + item.stock, type: 'warning' })
-                            return
-                        }
-                    })
                     t.push(Object.assign(r, t1, tableData[i]))
                 } else if(tableData[i].pn && !tableData[i].qty || tableData[i].pn && tableData[i].qty<=0) {
                     this.$message({ message: tableData[i].pn + '未填写有效数量', type: 'error' })
@@ -460,7 +446,7 @@ export default {
         getName(row) {
             if(!row.pn) { return }
             if(this.inventory[row.pn]) {
-                if(this.inventory[row.cpn].status==1||this.inventory[row.cpn].status==-1||this.ctrlDisabled.table||this.isEdit){
+                if(this.inventory[row.pn].status==1||this.inventory[row.pn].status==-1||this.ctrlDisabled.table||this.isEdit){
                     var records = this.$refs.xTable.getTableData().tableData
                     for(var i=0;i<records.length;i++) {
                         if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
@@ -475,7 +461,7 @@ export default {
                 } else {
                     this.$message({ message: '料号已停用', type: 'warning' })
                     row.qty = null
-                    row.cpn = null
+                    row.pn = null
                     return
                 }
             } else {
@@ -512,16 +498,28 @@ export default {
         insertRowEvent() {
             this.$refs.xTable.insertAt({},-1)
         },
-        getStock() {
-            this.$axios({
+        async checkStock() {
+            var res=true
+            var res=await this.$axios({
                 method: 'GET',
                 url: '/api/call',
                 params: { proc: 'CALL getstock();' }
-            }).then(res => {
-                this.stock = Object.values(res.data)
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
+            var tableData=this.$refs.xTable.getTableData().tableData
+            this.stock = Object.values(res.data)
+            for(var i=0;i<tableData.length;i++) {
+                if(tableData[i].pn) {
+                    this.stock.forEach(item => {
+                        if(item.wh==this.formData.owh&&item.pn==tableData[i].pn&&item.stock<tableData[i].qty) {
+                            this.$message({ message: item.pn + '库存不足, 审核失败', type: 'error'})
+                            res = false
+                        }
+                    })
+                }
+            }
+            return res
         },
         checkWh() {
             if(this.formData.iwh==this.formData.owh) {
@@ -531,11 +529,16 @@ export default {
         },
         createIO() {
             var receipt_data, delivery_data, data=this.$refs.xTable.getTableData().tableData
+            console.log(data)
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
                 params: {id: 'receipt'}
             }).then(res => {
+                console.log(res.data)
+                data.forEach(item => {
+                    item.id = res.data
+                })
                 receipt_data = [[{
                     id: res.data,
                     cat: '调拨入库',
@@ -545,26 +548,34 @@ export default {
                     created: this.formData.created,
                     createdat: this.formData.createdat
                 }], data]
+                console.log(receipt_data)
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
+            
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
                 params: {id: 'delivery'}
             }).then(res => {
+                console.log(res.data)
+                data.forEach(item => {
+                    item.id = res.data
+                })
                 delivery_data = [[{
                     id: res.data,
-                    cat: '调拨入库',
+                    cat: '调拨出库',
                     wh: this.formData.owh,
                     superiorid: this.formData.id,
                     comment: this.formData.comment,
                     created: this.formData.created,
                     createdat: this.formData.createdat
                 }], data]
+                console.log(delivery_data)
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
+            return
             this.$axios({
                 method: 'POST',
                 url: '/api/delivery',

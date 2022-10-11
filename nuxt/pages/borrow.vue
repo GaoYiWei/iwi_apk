@@ -346,11 +346,11 @@ export default {
             this.$nuxt.$emit('btnCtrl', this.formData.audited ? 'unaudit' : 'audit', res => {
                 this.ctrlDisabled = res
             })
-            var audited=this.$store.state.user.name, auditedat=new Date().toLocaleString('chinese', { hour12: false }), msg='审核成功'
+            var audited=this.$store.state.user.name, auditedat=new Date().toLocaleString('chinese', { hour12: false }), msg='已审核'
             if(this.formData.audited) {
                 audited = null
                 auditedat = null
-                msg = '弃审成功'
+                msg = '已弃审'
             }
             var data = { w: { id: this.formData.id }, v: { audited: audited, auditedat: auditedat, status: 1 } }
             this.submitLoading = true
