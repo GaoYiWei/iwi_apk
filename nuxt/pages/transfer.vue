@@ -307,7 +307,6 @@ export default {
                         }
                         this.$refs.xTable.remove()
                         this.$message({ message: '删除成功', type: 'success' })
-                        this.deleteIO()
                     } else {
                         this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
@@ -349,12 +348,14 @@ export default {
                 this.submitLoading = false
                 if(res.data=='OK') {
                     this.$message({ message: msg, type: 'success' })
-                    if(!this.formData.audited) {
-                        this.createIO()
-                    }
                     this.formData.audited = audited
                     this.formData.auditedat = auditedat
-                    this.formData.status = status                    
+                    this.formData.status = status
+                    if(this.formData.audited) {
+                        this.createIO()
+                    } else  {
+                        this.deleteIO()
+                    }                  
                 } else {
                     this.$message({ message: res.data, type: 'error' })
                     this.ctrlDisabled = btnStatus
@@ -528,109 +529,116 @@ export default {
             }
         },
         createIO() {
-            var receipt_data, delivery_data, data=this.$refs.xTable.getTableData().tableData
-            console.log(data)
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
                 params: {id: 'receipt'}
             }).then(res => {
-                console.log(res.data)
-                data.forEach(item => {
-                    item.id = res.data
+                var tdata=[], rid=res.data
+                this.$refs.xTable.getTableData().tableData.forEach(item => {
+                    if(item.pn && item.qty) {
+                        tdata.push({ id: res.data, pn: item.pn, qty: item.qty, comment: item.comment })
+                    }
                 })
-                receipt_data = [[{
-                    id: res.data,
-                    cat: '调拨入库',
-                    wh: this.formData.iwh,
-                    superiorid: this.formData.id,
-                    comment: this.formData.comment,
-                    created: this.formData.created,
-                    createdat: this.formData.createdat
-                }], data]
-                console.log(receipt_data)
+                this.$axios({
+                    method: 'POST',
+                    url: '/api/receipt',
+                    data: [[{
+                        id: res.data,
+                        cat: '调拨入库',
+                        wh: this.formData.iwh,
+                        superiorid: this.formData.id,
+                        comment: this.formData.comment,
+                        created: this.formData.created,
+                        createdat: this.formData.auditedat
+                    }], tdata]
+                }).then(res => {
+                    if(res.data=='OK') {
+                        this.$message({ message: '已生成入库单' + rid, type: 'success' })
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
+                    }
+                }).catch(err => {
+                    this.$message({ message: err, type: 'error' })
+                })
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
-            
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
                 params: {id: 'delivery'}
             }).then(res => {
-                console.log(res.data)
-                data.forEach(item => {
-                    item.id = res.data
+                var tdata=[], did=res.data
+                this.$refs.xTable.getTableData().tableData.forEach(item => {
+                    if(item.pn && item.qty) {
+                    tdata.push({ id: res.data, pn: item.pn, qty: item.qty, comment: item.comment })
+                    }
                 })
-                delivery_data = [[{
-                    id: res.data,
-                    cat: '调拨出库',
-                    wh: this.formData.owh,
-                    superiorid: this.formData.id,
-                    comment: this.formData.comment,
-                    created: this.formData.created,
-                    createdat: this.formData.createdat
-                }], data]
-                console.log(delivery_data)
-            }).catch(err => {
-                this.$message({ message: err, type: 'error' })
-            })
-            return
-            this.$axios({
-                method: 'POST',
-                url: '/api/delivery',
-                data: delivery_data
-            }).then(res => {
-                if(res.data=='OK') {
-                    this.$message({ message: '已生成出库单', type: 'success' })
-                } else {
-                    this.$message({ message: res.data, type: 'error' })
-                }
-            }).catch(err => {
-                this.$message({ message: err, type: 'error' })
-            })
-            this.$axios({
-                method: 'POST',
-                url: '/api/receipt',
-                data: receipt_data
-            }).then(res => {
-                if(res.data=='OK') {
-                    this.$message({ message: '已生成入库单', type: 'success' })
-                } else {
-                    this.$message({ message: res.data, type: 'error' })
-                }
+                this.$axios({
+                    method: 'POST',
+                    url: '/api/delivery',
+                    data: [[{
+                        id: res.data,
+                        cat: '调拨出库',
+                        wh: this.formData.owh,
+                        superiorid: this.formData.id,
+                        comment: this.formData.comment,
+                        created: this.formData.created,
+                        createdat: this.formData.auditedat
+                    }], tdata]
+                }).then(res => {
+                    if(res.data=='OK') {
+                        this.$message({ message: '已生成出库单' + did, type: 'success' })
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
+                    }
+                }).catch(err => {
+                    this.$message({ message: err, type: 'error' })
+                })
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
         },
         deleteIO() {
             this.$axios({
-                method: 'DELETE',
-                url: '/api/receipt',
-                params: { id: this.formData.id }
+                method: 'GET',
+                url: '/api/call',
+                params: { proc: 'CALL delio("' + this.formData.id + '");' }
             }).then(res => {
-                this.submitLoading = false
-                if(res.data=='OK') {
-                    this.$message({ message: '入库单删除成功', type: 'success' })
+                if(res.data[0]['err']==0) {
+                    this.$message({ message: '调拨出入库单已删除', type: 'success' })
+                } else if(res.data[0]['err']==2) {
+                    this.$message({ message: '调拨出库单' + res.data[0]['delivery_id'] + '入库单' + res.data[0]['receipt_id'] + '已审核, 请手动删除', type: 'error' })
                 } else {
-                    this.$message({ message: res.data, type: 'error' })
+                    this.$message({ message: '调拨出入库删除失败, 请手动删除或稍后再试', type: 'error' })
                 }
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
-            this.$axios({
-                method: 'DELETE',
-                url: '/api/delivery',
-                params: { id: this.formData.id }
-            }).then(res => {
-                if(res.data=='OK') {
-                    this.$message({ message: '出库单删除成功', type: 'success' })
-                } else {
-                    this.$message({ message: res.data, type: 'error' })
-                }
+        },
+        async checkStock() {
+            var res=true
+            var res=await this.$axios({
+                method: 'GET',
+                url: '/api/call',
+                params: { proc: 'CALL getstock();' }
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
+            var tableData=this.$refs.xTable.getTableData().tableData
+            this.stock = Object.values(res.data)
+            for(var i=0;i<tableData.length;i++) {
+                if(tableData[i].pn) {
+                    this.stock.forEach(item => {
+                        if(item.wh==this.formData.owh&&item.pn==tableData[i].pn&&item.stock<tableData[i].qty) {
+                            this.$message({ message: item.pn + '库存不足, 审核失败', type: 'error'})
+                            res = false
+                        }
+                    })
+                }
+            }
+            return res
         }
     }
 }

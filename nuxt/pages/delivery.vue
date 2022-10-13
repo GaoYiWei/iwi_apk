@@ -111,7 +111,7 @@
                 </template>
             </vxe-form-item>
         </vxe-form>
-        <div style="border:1px lightgray solid" :class="{ 'readonly': ctrlDisabled.table || formData.cat!='销售出库'  }">
+        <div style="border:1px lightgray solid" :class="{ 'readonly': ctrlDisabled.table || formData.cat=='生产领料' || formData.cat=='采购退货' }">
             <vxe-toolbar style="padding-left:10px">
                 <template #buttons>
                 <vxe-button type="text" size="mini" icon="fa vxe-icon-add" @click="insertRowEvent()">新增</vxe-button>

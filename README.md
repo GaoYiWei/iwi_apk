@@ -104,6 +104,38 @@
     DELIMITER ;
     ```
 
+    - 调拨单弃审删除下级单据
+
+    ```sql
+    DELIMITER $$
+    CREATE DEFINER=`sa`@`%` PROCEDURE `delio`(in orderid varchar(10))
+    BEGIN
+        DECLARE err INTEGER DEFAULT 0;
+        DECLARE receipt_id VARCHAR(10);
+        DECLARE delivery_id VARCHAR(10);
+        DECLARE receipter VARCHAR(20);
+        DECLARE deliveryer VARCHAR(20);
+        DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET err=1;
+        START TRANSACTION;
+        SELECT id, audited INTO receipt_id, receipter FROM receipt_m WHERE cat="调拨入库" AND superiorid=orderid;
+        SELECT id, audited INTO delivery_id, deliveryer FROM delivery_m WHERE cat="调拨出库" AND superiorid=orderid;
+        DELETE FROM receipt_c WHERE id=receipt_id;
+        DELETE FROM receipt_m WHERE id=receipt_id;
+        DELETE FROM delivery_c WHERE id=delivery_id;
+        DELETE FROM delivery_m WHERE id=delivery_id;
+        IF ISNULL(receipter)=0 OR ISNULL(deliveryer)=0 THEN
+            SET err=2;
+        END IF;
+        SELECT err, receipt_id, delivery_id;
+        IF err=1 OR err=2 THEN
+            ROLLBACK;
+        ELSE
+            COMMIT;
+        END IF;
+    END$$
+    DELIMITER ;
+    ```
+
     - 更新物料使用状态, SELECT 1避免无返回值报错
 
     ```sql

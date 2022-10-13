@@ -15,6 +15,7 @@
     "default-passive-events": "^2.0.0",
     "element-ui": "^2.15.2",
     "nuxt": "^2.15.7",
+    "qrcode": "^1.5.1",
     "sortablejs": "^1.15.0",
     "vxe-table": "^3.6.1",
     "xe-utils": "^3.5.6"
