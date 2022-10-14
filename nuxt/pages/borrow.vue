@@ -9,7 +9,8 @@
                     <vxe-button @click="auditEvent()" :disabled="formData.delivered?true:ctrlDisabled.auditBtn">{{auditBtn}}</vxe-button>
                     <vxe-button @click="deliveryEvent()" :disabled="formData.audited&&!formData.delivered?false:true">借出</vxe-button>
                     <vxe-button @click="receiveEvent()" :disabled="formData.delivered&&!formData.received?false:true">收回</vxe-button>
-                    <vxe-button @click="deleteEvent()" :disabled="ctrlDisabled.deleteBtn">删除</vxe-button>                    
+                    <vxe-button @click="deleteEvent()" :disabled="ctrlDisabled.deleteBtn">删除</vxe-button>
+                    <vxe-button @click="printEvent()">打印</vxe-button>
                 </template>
             </vxe-form-item>
             <vxe-form-item :span="4">
@@ -139,6 +140,8 @@
 
 <script>
 import { mapState } from 'vuex'
+import QRCode from 'qrcode'
+import VXETable from 'vxe-table'
 export default {
     data() {
         return {
@@ -195,9 +198,89 @@ export default {
             return this.formData.audited ? '弃审' : '审核'
         }
     },
-    mounted() {
-    },
     methods : {
+        printEvent() {
+            const printStyle = `
+                .fill-row { display: inline-block; height: 36px; margin-top: 36px; }
+                .fill-title { display: inline-block; vertical-align: middle; margin-right: 4px;}
+                .fill-value { vertical-align: bottom; border-bottom: 1px solid #000; margin-right: 15px;}
+                .header { width: 100%; margin: 0 auto; text-align: center; font: 26px bold; justify-content: center; }
+                .qrcode { height: 80px; width: 80px; margin: 0; position: fixed; top: -0.5rem; right: 0.5rem; }
+            `
+            var tableList = this.$refs.xTable.getTableData().tableData, printrow = ``
+            for(var i=0;i<tableList.length;i++){
+                if(tableList[i].pn){
+                    printrow = printrow + `
+                    <tr>
+                        <td style="text-align: center">`+(i+1)+`</td>
+                        <td style="text-align: center">`+tableList[i].pn+`</td>
+                        <td style="text-align: center">`+this.inventory[tableList[i].pn].name+`</td>
+                        <td style="text-align: center">`+this.inventory[tableList[i].pn].model+`</td>
+                        <td style="white-space: nowrap;text-align: center">`+this.inventory[tableList[i].pn].namedesc+`</td>
+                        <td style="white-space: nowrap;text-align: center">`+tableList[i].qty+`</td>
+                        <td style="text-align: center">`+this.isNull(tableList[i].comment)+`</td>
+                    </tr>
+                    `
+                }
+            }
+            QRCode.toDataURL(this.formData.id).then(url => {
+                const printTmpl = `
+                    <table><tbody><tr><td>
+                        <div class="header">借用单</div>
+                        <img class="qrcode" src="`+url+`"/>
+                        <div>
+                            <div class="fill-row">
+                                <span class="fill-title">单号：</span>
+                                <span class="fill-value">`+this.formData.id+`</span>
+                                <span class="fill-title">用途：</span>
+                                <span class="fill-value">`+this.formData.usedfor+`</span>
+                                <span class="fill-title">归还时间：</span>
+                                <span class="fill-value">`+this.formData.prebackat+`</span>
+                                <span class="fill-title">备注：</span>
+                                <span class="fill-value">`+this.isNull(this.formData.comment)+`</span>
+                            </div>
+                            <table border="1" style="border-collapse: collapse; margin-top: 30px;">
+                            <tr>
+                                <th width="65px">序号</th>
+                                <th width="100px">料号</th>
+                                <th width="240px">品名</th>
+                                <th width="130px">型号</th>
+                                <th width="300px">品名描述</th>
+                                <th width="80px">数量</th>
+                                <th width="240px">备注</th>
+                            </tr>
+                            `+printrow+`
+                            </table>
+                            <div class="fill-row">
+                                <span class="fill-title">制单：</span>
+                                <span class="fill-value">`+this.formData.created+`</span>
+                                <span class="fill-title">制单日期：</span>
+                                <span class="fill-value">`+this.formData.createdat+`</span>
+                                <span class="fill-title">编辑：</span>
+                                <span class="fill-value">`+this.formData.edited+`</span>
+                                <span class="fill-title">编辑日期：</span>
+                                <span class="fill-value">`+this.formData.editedat+`</span>
+                                <span class="fill-title">审核：</span>
+                                <span class="fill-value">`+this.formData.created+`</span>
+                                <span class="fill-title">审核日期：</span>
+                                <span class="fill-value">`+this.formData.auditedat+`</span>
+                            </div>
+                        </div>
+                    </td></tr></tbody></table>
+                    `
+                VXETable.print({
+                    style: printStyle,
+                    content: printTmpl
+                })
+            })
+        },
+        isNull(str) {
+            if(str==null) {
+                return ''
+            }else{
+                return str
+            }
+        },
         enterSearch($event) {
             if($event.$event.key=='Enter') { 
                 this.searchEvent()

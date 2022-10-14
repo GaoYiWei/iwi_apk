@@ -276,8 +276,8 @@ export default {
                 .fill-row { display: inline-block; height: 36px; margin-top: 36px; }
                 .fill-title { display: inline-block; vertical-align: middle; margin-right: 4px;}
                 .fill-value { vertical-align: bottom; border-bottom: 1px solid #000; margin-right: 15px;}
-                .header { width: 100%; height: 60px; margin: 0 auto; position: fixed; top: 0; text-align: center; font: 26px bold; justify-content: center; }
-                .qrcode { height: 100px; width: 100px; margin: 0; position: fixed; top: 0; right: 0.5rem; }
+                .header { width: 100%; margin: 0 auto; text-align: center; font: 26px bold; justify-content: center; }
+                .qrcode { height: 80px; width: 80px; margin: 0; position: fixed; top: -0.5rem; right: 0.5rem; }
             `
             var tableList = this.$refs.xTable.getTableData().tableData, printrow = ``
             for(var i=0;i<tableList.length;i++){
@@ -306,7 +306,7 @@ export default {
                                 <span class="fill-value">`+this.formData.id+`</span>
                                 <span class="fill-title">仓库：</span>
                                 <span class="fill-value">`+this.formData.wh+`</span>
-                                <span class="fill-title">类别：</span>
+                                <span class="fill-title">分类：</span>
                                 <span class="fill-value">`+this.formData.cat+`</span>
                                 <span class="fill-title">备注：</span>
                                 <span class="fill-value">`+this.isNull(this.formData.comment)+`</span>

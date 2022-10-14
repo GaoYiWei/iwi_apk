@@ -3,6 +3,7 @@
         <vxe-toolbar>
           <template #buttons>
             <vxe-button icon="vxe-icon-square-plus" @click="insertEvent()">新增</vxe-button>
+            <vxe-input v-model="filterName" type="search" placeholder="试试全表搜索" @keyup="searchEvent" clearable @clear="clearEvent"></vxe-input>
           </template>
         </vxe-toolbar>
         <vxe-table
@@ -16,10 +17,14 @@
             :data="tableList"
             @cell-dblclick="cellDBLClickEvent">
             <vxe-column field="pn" title="料号" width="120"></vxe-column>
-            <vxe-column field="size" title="尺寸" width="200"></vxe-column>
+            <vxe-column field="name" title="品名" width="200"></vxe-column>
+            <vxe-column field="model" title="型号" width="120"></vxe-column>
+            <vxe-column field="namedesc" title="品名描述" width="300"></vxe-column>
+            <vxe-column field="manufact" title="厂家" width="200"></vxe-column>
+            <vxe-column field="size" title="尺寸" width="150"></vxe-column>
             <vxe-column field="volume" title="体积" width="120"></vxe-column>
-            <vxe-column field="netw" title="净重" width="300"></vxe-column>
-            <vxe-column field="grossw" title="毛重" width="200"></vxe-column>
+            <vxe-column field="netw" title="净重" width="80"></vxe-column>
+            <vxe-column field="grossw" title="毛重" width="80"></vxe-column>
             <vxe-column field="created" title="创建人" show-overflow width="90"></vxe-column>
             <vxe-column field="createdat" title="创建时间" show-overflow :visible="false"></vxe-column>
             <vxe-column field="edited" title="编辑人" show-overflow width="90"></vxe-column>
@@ -122,6 +127,7 @@
 </template>
 
 <script>
+import XEUtils from 'xe-utils'
 import { mapState } from 'vuex'
 export default {
     data() {
@@ -180,12 +186,17 @@ export default {
         }  
     },
     mounted() {
+        console.log(this.inventory)
         this.$axios({
             method: 'GET',
             url: '/api/inventoryinfo'
-        }).then(res => {
-            this.tableList = res.data['inventoryinfo']
-            this.tableData = res.data['inventoryinfo']
+        }).then(res => {            
+            var data
+            res.data['inventoryinfo'].forEach(item => {
+                data = Object.assign(item, { name: this.inventory[item.pn].name, model: this.inventory[item.pn].model, namedesc: this.inventory[item.pn].namedesc, manufact: this.inventory[item.pn].manufact })
+                this.tableData.push(data)
+            })
+            this.tableList = this.tableData
         }).catch(err => {
             this.$message({ message: err, type: 'error' })
         })
@@ -392,7 +403,61 @@ export default {
                 this.formData.model = null
                 this.formData.namedesc = null
             }
+        },
+        searchEvent() {
+            const filterName = XEUtils.toValueString(this.filterName).trim().toLowerCase()
+            if (filterName) {
+                const searchProps = ['pn', 'name', 'model', 'namedesc', 'manufact']
+                const rest = this.tableData.filter(item => searchProps.some(key => XEUtils.toValueString(item[key]).toLowerCase().indexOf(filterName) > -1))
+                this.tableList = rest.map(row => {
+                    return Object.assign({}, row)
+                })
+            } else {
+                this.tableList = this.tableData
+            }
+        },
+        clearEvent() {
+            this.tableList = this.tableData
+        },
+        getName(row) {
+            if(!row.pn) { return }
+            if(this.inventory[row.pn]) {
+                return this.inventory[row.pn].name
+            } else {
+                return null
+            }
+        },
+        getModel(row) {
+            if(!row.pn) { return }
+            if(this.inventory[row.pn]) {
+                return this.inventory[row.pn].model
+            } else {
+                return null
+            }
+        },
+        getNamedesc(row) {
+            if(!row.pn){ return }
+            if(this.inventory[row.pn]) {
+                return this.inventory[row.pn].namedesc
+            } else {
+                return null
+            }
+        },
+        getManufact(row) {
+            if(!row.pn){ return }
+            if(this.inventory[row.pn]) {
+                return this.inventory[row.pn].manufact
+            } else {
+                return null
+            }
         }
     }
 }
 </script>
+
+<style scoped>
+.keyword-lighten {
+    color: #000;
+    background-color: #FFFF00;
+}
+</style>

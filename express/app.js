@@ -15,6 +15,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// websocket
+const WebSocketService = require('./utils/ws')
+WebSocketService.listen()
+
 // cors跨域
 app.all('*',function (req,res,next) {
     res.header("Access-Control-Allow-Origin", '*');

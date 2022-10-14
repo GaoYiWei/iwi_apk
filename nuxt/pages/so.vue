@@ -7,6 +7,7 @@
                 <vxe-button @click="editEvent()" :disabled="ctrlDisabled.editBtn">编辑</vxe-button>
                 <vxe-button @click="auditEvent()" :disabled="formData.delivered?true:ctrlDisabled.auditBtn">{{auditBtn}}</vxe-button>
                 <vxe-button @click="deleteEvent()" :disabled="ctrlDisabled.deleteBtn">删除</vxe-button>
+                <vxe-button @click="printEvent()">打印</vxe-button>
                 <vxe-input style="position:absolute;right:1rem;" v-model="searchVal" placeholder="请输入单号" type="search" clearable @keydown="enterSearch($event)" @search-click="searchEvent()"></vxe-input>
             </template>
         </vxe-toolbar>
@@ -187,6 +188,8 @@
 
 <script>
 import { mapState } from 'vuex'
+import QRCode from 'qrcode'
+import VXETable from 'vxe-table'
 export default {
     data() {
         return {
@@ -296,9 +299,9 @@ export default {
             } else if(this.formData.status==1) {
                 return '待出库'
             } else if(this.formData.status==-1) {
-                return '已出库'
+                return '已完结'
             } else {
-                return '有退货'
+                return '有出库'
             }
         },
         auditBtn() {
@@ -352,6 +355,98 @@ export default {
         })
     },
     methods : {
+        printEvent() {
+            const printStyle = `
+                .fill-row { display: inline-block; height: 36px; margin-top: 36px; }
+                .fill-title { display: inline-block; vertical-align: middle; margin-right: 4px;}
+                .fill-value { vertical-align: bottom; border-bottom: 1px solid #000; margin-right: 15px;}
+                .header { width: 100%; margin: 0 auto; text-align: center; font: 26px bold; justify-content: center; }
+                .qrcode { height: 80px; width: 80px; margin: 0; position: fixed; top: -0.5rem; right: 0.5rem; }
+            `
+            var tableList = this.$refs.xTable.getTableData().tableData, printrow = ``
+            for(var i=0;i<tableList.length;i++){
+                if(tableList[i].pn){
+                    printrow = printrow + `
+                    <tr>
+                        <td style="text-align: center">`+(i+1)+`</td>
+                        <td style="text-align: center">`+tableList[i].pn+`</td>
+                        <td style="text-align: center">`+this.inventory[tableList[i].pn].name+`</td>
+                        <td style="text-align: center">`+this.inventory[tableList[i].pn].model+`</td>
+                        <td style="white-space: nowrap;text-align: center">`+this.inventory[tableList[i].pn].namedesc+`</td>
+                        <td style="white-space: nowrap;text-align: center">`+tableList[i].qty+`</td>
+                        <td style="text-align: center">`+this.isNull(tableList[i].comment)+`</td>
+                    </tr>
+                    `
+                }
+            }
+            QRCode.toDataURL(this.formData.id).then(url => {
+                const printTmpl = `
+                    <table><tbody><tr><td>
+                        <div class="header">销售单</div>
+                        <img class="qrcode" src="`+url+`"/>
+                        <div>
+                            <div class="fill-row">
+                                <span class="fill-title">单号：</span>
+                                <span class="fill-value">`+this.formData.id+`</span>
+                                <span class="fill-title">分类：</span>
+                                <span class="fill-value">`+this.formData.cat+`</span>
+                                <span class="fill-title">合同：</span>
+                                <span class="fill-value">`+this.formData.contract+`</span>
+                                <span class="fill-title">发货时间：</span>
+                                <span class="fill-value">`+this.formData.deliverat+`</span>
+                                <span class="fill-title">客户：</span>
+                                <span class="fill-value">`+this.formData.buyer+`</span>
+                                <span class="fill-title">收货人：</span>
+                                <span class="fill-value">`+this.formData.cnee+`</span>
+                                <span class="fill-title">电话：</span>
+                                <span class="fill-value">`+this.formData.tel+`</span>
+                                <span class="fill-title">地址：</span>
+                                <span class="fill-value">`+this.formData.addr+`</span> 
+                                <span class="fill-title">备注：</span>
+                                <span class="fill-value">`+this.isNull(this.formData.comment)+`</span>
+                            </div>
+                            <table border="1" style="border-collapse: collapse; margin-top: 30px;">
+                            <tr>
+                                <th width="65px">序号</th>
+                                <th width="100px">料号</th>
+                                <th width="240px">品名</th>
+                                <th width="130px">型号</th>
+                                <th width="300px">品名描述</th>
+                                <th width="80px">数量</th>
+                                <th width="240px">备注</th>
+                            </tr>
+                            `+printrow+`
+                            </table>
+                            <div class="fill-row">
+                                <span class="fill-title">制单：</span>
+                                <span class="fill-value">`+this.formData.created+`</span>
+                                <span class="fill-title">制单日期：</span>
+                                <span class="fill-value">`+this.formData.createdat+`</span>
+                                <span class="fill-title">编辑：</span>
+                                <span class="fill-value">`+this.formData.edited+`</span>
+                                <span class="fill-title">编辑日期：</span>
+                                <span class="fill-value">`+this.formData.editedat+`</span>
+                                <span class="fill-title">审核：</span>
+                                <span class="fill-value">`+this.formData.created+`</span>
+                                <span class="fill-title">审核日期：</span>
+                                <span class="fill-value">`+this.formData.auditedat+`</span>
+                            </div>
+                        </div>
+                    </td></tr></tbody></table>
+                    `
+                VXETable.print({
+                    style: printStyle,
+                    content: printTmpl
+                })
+            })
+        },
+        isNull(str) {
+            if(str==null) {
+                return ''
+            }else{
+                return str
+            }
+        },
         getCneeEvent() {
             if(this.cneeList[this.formData.cnee]) {
                 this.formData.tel = this.cneeList[this.formData.cnee]['tel']
@@ -369,7 +464,6 @@ export default {
                             this.formData.buyer = null
                             return
                         }
-                        console.log(this.buyerList[i])
                         if(this.buyerList[i].cat=='供应商') {
                             this.$message({ message: '此合作商类别为供应商', type: 'warning' })
                             this.formData.buyer = null

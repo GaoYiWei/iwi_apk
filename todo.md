@@ -8,34 +8,29 @@
 
 - 页面
 
-1. delivery
-2. receipt
-3. transfer
-4. disassemb
-
 - 功能
 
 1. 顶部导航栏添加当前表单名 ✓
-2. 修改出入库上级单据状态码对应的描述：待审核、待出库、已出库、已完结
+2. 修改出入库上级单据状态码对应的描述：待审核、待出库、有出库、已完结 ✓
 3. 数据校验:edit-rules, 表体数字列检查
-4. 存储过程使用事务
-5. 可公用数据转移至default.vue中加载到vuex, 如仓库、库存、料号、合作商、省市县(仅采购/销售加载), 库存数据新增&查找时刷新
-6. 单表页面设置全表搜索, 分页显示, partners users inventory inventoryinfo whs departs
+4. 存储过程使用事务 ✓
+5. 可公用数据转移至default.vue中加载到vuex, 如仓库、料号、合作商、省市县(仅采购/销售加载) ?
+6. 单表页面设置全表搜索, inventory inventoryinfo ✓
 7. admin帐号限制单点登录, 防止depart&wh, id前端生成冲突; 待办事项提醒
 8. 单据查找; <https://vxetable.cn/v3/#/table/grid/edit>
-9. 打印模板设置
+9. 打印模板设置 ✓
 10. 物料计划, 生成计划前使用CALL updatestatus更新BOM层级; 计划审核后自动生成相应单据
 11. 库存使用redis, 数据结构 {仓库: {料号: 库存}}
 12. 增加存储过程: 停用的物料在替代料中停用, 物料档案banEvent中触发
 13. 拆解单审核后自动生成入库单
-14. UI优化
-15. 清除console.log
+14. UI美化
+15. 清除console.log ✓
 
 - 权限
 
 | 页面    | 操作       | 用户       |
 | ------- | --------- | ---------- |
-| partners/users/inventory/inventoryinfo/whs/departs     | CRUD  | admin |
+| partners/users/inventory/inventoryinfo/whs/departs | CRUD  | admin |
 | others     | R  | all users |
 | others     | CU  | depart users |
 | others     | D  | creator |

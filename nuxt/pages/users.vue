@@ -283,7 +283,6 @@ export default {
                     url: '/api/users',
                     params: { w: w, v: v }
                 }).then(res => {
-                    console.log(res)
                     this.submitLoading = false
                     if(res.data=='OK') {
                         this.showEdit = false

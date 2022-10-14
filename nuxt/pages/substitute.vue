@@ -213,7 +213,6 @@ export default {
             }
         },
         async insertEvent() {
-            console.log(this.isInsert,this.isEdit)
             if(this.isInsert||this.isEdit){
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
@@ -395,7 +394,6 @@ export default {
                     if(res.data=='OK') {
                         this.$message({ message: '保存成功', type: 'success' })
                         this.isInsert = false
-                        console.log(this.isInsert)
                     } else {
                         this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
@@ -414,7 +412,6 @@ export default {
                 if(tableData[i].substitutes && tableData[i].prop>0) {     
                     r={}
                     t.push(Object.assign(r, t1, {priority: i+1}, tableData[i]))
-                    console.log(t)
                 } else if(tableData[i].substitutes && !tableData[i].prop || tableData[i].substitutes && tableData[i].prop<=0) {
                     this.$message({ message: tableData[i].substitutes + '未填写有效替代率', type: 'error' })
                     return

@@ -30,6 +30,7 @@ export default {
     plugins: [
         '@/plugins/element-ui',
         '@/plugins/axios',
+        '@/plugins/websocket',
         '@/plugins/vxe',
         '@/plugins/passive',
         '@/assets/js/iconfont'

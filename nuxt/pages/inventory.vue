@@ -1,9 +1,10 @@
 <template>
     <div>
         <vxe-toolbar>
-          <template #buttons>
-            <vxe-button icon="vxe-icon-square-plus" @click="insertEvent()">新增</vxe-button>
-          </template>
+            <template #buttons>
+                <vxe-button icon="vxe-icon-square-plus" @click="insertEvent()">新增</vxe-button>
+                <vxe-input v-model="filterName" type="search" placeholder="试试全表搜索" @keyup="searchEvent" clearable @clear="clearEvent"></vxe-input>
+            </template>
         </vxe-toolbar>
         <vxe-table
             border
@@ -118,6 +119,7 @@
 </template>
 
 <script>
+import XEUtils from 'xe-utils'
 export default {
     data() {
         return {
@@ -384,7 +386,29 @@ export default {
             } else {
                 this.$message({ message: '当前记录不可删除', type: 'warning' })
             }
+        },
+        searchEvent() {
+            const filterName = XEUtils.toValueString(this.filterName).trim().toLowerCase()
+            if (filterName) {
+                const searchProps = ['pn', 'name', 'model', 'namedesc', 'manufact']
+                const rest = this.tableData.filter(item => searchProps.some(key => XEUtils.toValueString(item[key]).toLowerCase().indexOf(filterName) > -1))
+                this.tableList = rest.map(row => {
+                    return Object.assign({}, row)
+                })
+            } else {
+                this.tableList = this.tableData
+            }
+        },
+        clearEvent() {
+            this.tableList = this.tableData
         }
     }
 }
 </script>
+
+<style scoped>
+.keyword-lighten {
+    color: #000;
+    background-color: #FFFF00;
+}
+</style>

@@ -186,6 +186,11 @@ export default {
         }
     },
     mounted() {
+        this.ws.connect()
+        setTimeout(() => {
+            this.ws.registerCallBack('print', this.print())
+            this.ws.send(JSON.stringify('HELLO, EXPRESS'))            
+        }, 100)
         if(localStorage.getItem('user')) {
             this.$store.commit('setUser', JSON.parse(localStorage.getItem('user')))
             this.getInventory()
@@ -216,6 +221,9 @@ export default {
         })
     },
     methods : {
+        print(str) {
+            console.log(str)
+        },
         getInventory() {
             this.$axios({
                 method: 'GET',
