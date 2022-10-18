@@ -188,11 +188,12 @@ export default {
     mounted() {
         this.ws.connect()
         setTimeout(() => {
-            this.ws.registerCallBack('print', this.print())
-            this.ws.send(JSON.stringify('HELLO, EXPRESS'))            
+            this.ws.registerCallBack('logout', this.logout())
+            this.ws.send(JSON.stringify({id: Math.round(new Date()), user: 'admin', callback: 'logout'}))
         }, 100)
+        return
         if(localStorage.getItem('user')) {
-            this.$store.commit('setUser', JSON.parse(localStorage.getItem('user')))
+            this.$store.commit('', JSON.parse(localStorage.getItem('user')))
             this.getInventory()
         } else {
             this.showLoginForm = true
@@ -221,8 +222,17 @@ export default {
         })
     },
     methods : {
-        print(str) {
-            console.log(str)
+        logout() {
+            if(localStorage.getItem('user')) {
+                if(JSON.parse(localStorage.getItem('user'))['account']='1144806425@qq.com') {
+                    this.$router.push({ path: '/'})
+                    localStorage.clear()
+                    this.$store.commit('setUser', { account: null, pwd: null, depart: null })
+                    this.$alert('admin账户已在其他地方登录', '登录提示', {
+                        confirmButtonText: '确定'
+                    })
+                }
+            }
         },
         getInventory() {
             this.$axios({
@@ -266,6 +276,9 @@ export default {
                         params: this.loginForm
                     }).then(res => {
                         if(res.data.token) {
+                            if(this.loginForm.account=='1144806425@qq.com') {
+                                this.ws.send(JSON.stringify({user: 'admin'}))
+                            }
                             localStorage.setItem('token', res.data.token)
                             localStorage.setItem('user', JSON.stringify(res.data.user))
                             this.$message({ type: 'success', message: '登录成功' })

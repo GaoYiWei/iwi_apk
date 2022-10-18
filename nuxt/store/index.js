@@ -1,5 +1,5 @@
 export const state = () => ({
-    user: { account: null, pwd: null, depart: null},
+    user: { account: null, pwd: null, depart: null },
     inventory: {}
 })
 

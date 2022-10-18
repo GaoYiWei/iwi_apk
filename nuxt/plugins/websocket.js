@@ -34,11 +34,11 @@ var ws = {
                 }
                 // 接收消息
                 this.ws.onmessage = msg => {
-                    data = JSON.parse(msg)
-                    console.log(msg)
-                    // if(this.callBackMapping[data['callback']]) {
-                    //     this.callBackMapping[data['callback']].call(this, data['data'])
-                    // }
+                    var data = JSON.parse(msg.data)
+                    console.log(data)
+                    if(this.callBackMapping[data['callback']]) {
+                        this.callBackMapping[data['callback']].call(this)
+                    }
                 }
             },
             send: function(data) {
