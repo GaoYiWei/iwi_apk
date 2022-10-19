@@ -4,10 +4,11 @@ module.exports = {
     listen: () => {
         wss.on('connection', ws => {
             ws.on('message', msg => {
-                if(JSON.parse(msg.toString())['user']=='admin') {
+                var msg = JSON.parse(JSON.parse(msg.toString()))
+                if(msg['user']=='admin') {                    
                     wss.clients.forEach(c => {
                         if(ws!=c && c.readyState==1) {
-                            c.send(JSON.stringify({ callback: msg.toString()['callback']}))
+                            c.send(JSON.stringify({ data: null, callback: msg['callback']}))
                         }
                     })
                 }

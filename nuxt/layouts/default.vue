@@ -187,13 +187,14 @@ export default {
     },
     mounted() {
         this.ws.connect()
-        setTimeout(() => {
-            this.ws.registerCallBack('logout', this.logout())
-            this.ws.send(JSON.stringify({id: Math.round(new Date()), user: 'admin', callback: 'logout'}))
-        }, 100)
-        return
         if(localStorage.getItem('user')) {
-            this.$store.commit('', JSON.parse(localStorage.getItem('user')))
+            setTimeout(() => {
+                this.ws.registerCallBack('logout', this.logout)
+                this.ws.send(JSON.stringify({id: Math.round(new Date()), user: JSON.parse(localStorage.getItem('user'))['name'], callback: 'logout'}))
+            }, 100)
+        }
+        if(localStorage.getItem('user')) {
+            this.$store.commit('setUser', JSON.parse(localStorage.getItem('user')))
             this.getInventory()
         } else {
             this.showLoginForm = true

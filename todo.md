@@ -16,7 +16,7 @@
 4. 存储过程使用事务 ✓
 5. 可公用数据转移至default.vue中加载到vuex, 如仓库、料号、合作商、省市县(仅采购/销售加载) ?
 6. 单表页面设置全表搜索, inventory inventoryinfo ✓
-7. admin帐号限制单点登录, 防止depart&wh, id前端生成冲突; 待办事项提醒
+7. admin帐号限制单点登录, 防止depart&wh, id前端生成冲突; ✓ 待办事项提醒
 8. 单据查找; <https://vxetable.cn/v3/#/table/grid/edit>
 9. 打印模板设置 ✓
 10. 物料计划, 生成计划前使用CALL updatestatus更新BOM层级; 计划审核后自动生成相应单据

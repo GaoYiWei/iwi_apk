@@ -34,10 +34,9 @@ var ws = {
                 }
                 // 接收消息
                 this.ws.onmessage = msg => {
-                    var data = JSON.parse(msg.data)
-                    console.log(data)
-                    if(this.callBackMapping[data['callback']]) {
-                        this.callBackMapping[data['callback']].call(this)
+                    var msg = JSON.parse(msg.data)
+                    if(this.callBackMapping[msg['callback']]) {
+                        this.callBackMapping[msg['callback']].call(this, msg['data'])
                     }
                 }
             },
