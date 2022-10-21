@@ -51,6 +51,12 @@ var ws = {
                     }, 500 * this.sendRetryCount);
                 }
             },
+            close: function() {
+                this.connected = false
+                this.sendRetryCount = 0
+                this.connectRetryCount = 0
+                this.ws.close()
+            },
             callBackMapping: {}, //存储回调函数
             //注册回调
             registerCallBack: function(socketid, callback) {

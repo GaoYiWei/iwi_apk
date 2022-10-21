@@ -323,6 +323,12 @@ export default {
         }
     },
     mounted() {
+        if(this.$route.query.id) {
+            setTimeout(() => {
+                this.searchVal = this.$route.query.id
+                this.searchEvent()
+            }, 300)
+        }
         this.submitLoading = true
         if(!localStorage.getItem('addr')) {
             this.$axios({
@@ -517,39 +523,39 @@ export default {
             }
         },
         searchEvent() {
-                if(Number(this.searchVal)) {
-                    this.searchVal = (Array(10).join(0) + Number(this.searchVal)).slice(-10)
-                } else {
-                    this.$message({ message: '单号错误', type: 'warning' })
+            if(Number(this.searchVal)) {
+                this.searchVal = (Array(10).join(0) + Number(this.searchVal)).slice(-10)
+            } else {
+                this.$message({ message: '单号错误', type: 'warning' })
+                return
+            }
+            this.submitLoading = true
+            this.$axios({
+                method: 'GET',
+                url: '/api/po',
+                params: { id: this.searchVal }
+            }).then(res => {
+                if(res.data['po_m'].length==0) {
+                    this.$message({ message: '没有找到记录', type: 'warning' })
                     return
                 }
-                this.submitLoading = true
-                this.$axios({
-                    method: 'GET',
-                    url: '/api/po',
-                    params: { id: this.searchVal }
-                }).then(res => {
-                    if(res.data['po_m'].length==0) {
-                        this.$message({ message: '没有找到记录', type: 'warning' })
-                        return
-                    }
-                    this.submitLoading = false
-                    this.formData = res.data['po_m'][0]
-                    this.tableData = res.data['po_c']
-                    this.ctrlDisabled.saveBtn = true
-                    this.ctrlDisabled.auditBtn = false
-                    this.ctrlDisabled.table = true
-                    if(this.formData.audited) {
-                        this.ctrlDisabled.deleteBtn = true
-                        this.ctrlDisabled.editBtn = true               
-                    } else {                        
-                        this.ctrlDisabled.deleteBtn = false
-                        this.ctrlDisabled.editBtn = false 
-                    }
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
-                })
+                this.submitLoading = false
+                this.formData = res.data['po_m'][0]
+                this.tableData = res.data['po_c']
+                this.ctrlDisabled.saveBtn = true
+                this.ctrlDisabled.auditBtn = false
+                this.ctrlDisabled.table = true
+                if(this.formData.audited) {
+                    this.ctrlDisabled.deleteBtn = true
+                    this.ctrlDisabled.editBtn = true               
+                } else {                        
+                    this.ctrlDisabled.deleteBtn = false
+                    this.ctrlDisabled.editBtn = false 
+                }
+            }).catch(err => {
+                this.submitLoading = false
+                this.$message({ message: err, type: 'error' })
+            })
         },
         async insertEvent() {
             if(this.isInsert||this.isEdit){

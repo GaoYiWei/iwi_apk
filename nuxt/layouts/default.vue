@@ -41,6 +41,7 @@
                     <el-menu-item index="whs">仓库</el-menu-item>
                     <el-menu-item index="partners">合作单位</el-menu-item>
                 </el-submenu>
+                <el-menu-item index="records">记录查询</el-menu-item>
             </el-menu>
             <div class="title">{{title}}</div>
             <i class="iconfont icon-yonghu login" @click="showLogin()"></i>
@@ -121,6 +122,7 @@
 </template>
 
 <script>
+
 export default {
     data() {
         return {
@@ -179,7 +181,9 @@ export default {
                 title = '用户列表'
             } else if(this.$route.path=='/whs') {
                 title = '仓库列表'
-            } else {
+            } else if(this.$route.path=='/records') {
+                title = '记录查询'
+            }else {
                 title = null
             }
             return title
@@ -190,7 +194,7 @@ export default {
         if(localStorage.getItem('user')) {
             setTimeout(() => {
                 this.ws.registerCallBack('logout', this.logout)
-                this.ws.send(JSON.stringify({id: Math.round(new Date()), user: JSON.parse(localStorage.getItem('user'))['name'], callback: 'logout'}))
+                this.ws.send(JSON.stringify({ user: JSON.parse(localStorage.getItem('user'))['name'], callback: 'logout' }))
             }, 100)
         }
         if(localStorage.getItem('user')) {
@@ -222,10 +226,13 @@ export default {
             callback(res)
         })
     },
+    beforeDestroy() {
+        this.ws.close()
+    },
     methods : {
         logout() {
             if(localStorage.getItem('user')) {
-                if(JSON.parse(localStorage.getItem('user'))['account']='1144806425@qq.com') {
+                if(JSON.parse(localStorage.getItem('user'))['name']='admin') {
                     this.$router.push({ path: '/'})
                     localStorage.clear()
                     this.$store.commit('setUser', { account: null, pwd: null, depart: null })
@@ -283,7 +290,8 @@ export default {
                             localStorage.setItem('token', res.data.token)
                             localStorage.setItem('user', JSON.stringify(res.data.user))
                             this.$message({ type: 'success', message: '登录成功' })
-                            this.$router.push({ name: this.$route.name })
+                            this.ws.registerCallBack('logout', this.logout)
+                            this.ws.send(JSON.stringify({ user: JSON.parse(localStorage.getItem('user'))['name'], callback: 'logout' }))
                             this.getInventory()
                             this.showLoginForm = false
                         } else {

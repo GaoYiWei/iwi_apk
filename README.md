@@ -45,10 +45,10 @@
 ### 数据库
 
 1. express文件夹下运行npm i, 安装依赖
-2. 创建MySQL数据库及用户, 在express/utils/mysql.js第4、22行修改数据库连接配置, 第1056行修改初始用户信息
+2. 创建MySQL数据库及用户, 在express/utils/mysql.js第2~23行修改数据库连接配置
 3. 创建redis数据库及用户, 在express/utils/redis.js第2行修改数据库连接配置
-4. 注释express/bin/www.js第14~87行, 取消注释express/utils/mysql.js第1012~1017行
-5. 根据需要在express/db/mysql.js第1020行修改admin信息, 默认账号1144806425@qq.com密码iwigao; 数据库存储加密后的结果, 算法见nuxt/layouts/default.vue中method下getHash方法
+4. 注释express/bin/www.js第14~87行, 取消注释express/utils/mysql.js第1007~1012行
+5. 根据需要在express/db/mysql.js第1020行修改admin信息, 默认账号1144806425@qq.com密码iwigao, 用户名必须admin(权限认证); 数据库存储加密后的结果, 算法见nuxt/layouts/default.vue中method下getHash方法
 6. express文件夹下运行node ./bin/www同步表, 同步后结束运行
 
     ```shell

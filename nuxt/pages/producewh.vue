@@ -172,6 +172,12 @@ export default {
         }
     },
     mounted() {
+        if(this.$route.query.id) {
+            setTimeout(() => {
+                this.searchVal = this.$route.query.id
+                this.searchEvent()
+            }, 300)
+        }
     },
     methods : {
         printEvent() {

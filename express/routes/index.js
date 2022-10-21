@@ -157,8 +157,16 @@ router.get('/call',(req, res) => {
         res.sendStatus(403)
         return
     }
+    var isRecords=req.query.proc.substring(0,13)=='CALLGETRECORD'
+    if(isRecords) {
+        req.query.proc = req.query.proc.substring(13)
+    }
     sequelize.call(req.query.proc).then(data => {
-        res.send(data)
+        if(isRecords) {
+            res.send(data)
+        } else {
+            res.send(data[0])
+        }
     })
     .catch(err => {
         console.log(err)

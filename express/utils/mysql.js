@@ -1087,7 +1087,7 @@ module.exports = {
     // 调用存储过程: CALL stock;
     call: async function query(sql) {
         const query = await sequelize.query({ query: sql }, { raw: true, type: sequelize.QueryTypes.SELECT })
-        return query[0]
+        return query
     },
     // 单号: table_name
     orderid: async function orderid(obj) {

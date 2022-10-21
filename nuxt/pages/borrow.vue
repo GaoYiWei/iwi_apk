@@ -52,7 +52,7 @@
                 resizable
                 show-overflow
                 ref="xTable"
-                height="660"
+                height="620"
                 header-align="center"
                 :row-config="{isHover: true, isCurrent: true, useKey: true}"
                 :data="tableData"
@@ -196,6 +196,14 @@ export default {
         ...mapState(['inventory']),
         auditBtn() {
             return this.formData.audited ? '弃审' : '审核'
+        }
+    },
+    mounted() {
+        if(this.$route.query.id) {
+            setTimeout(() => {
+                this.searchVal = this.$route.query.id
+                this.searchEvent()
+            }, 300)
         }
     },
     methods : {
