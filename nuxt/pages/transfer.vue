@@ -253,7 +253,7 @@ export default {
                                 <span class="fill-title">编辑日期：</span>
                                 <span class="fill-value">`+this.formData.editedat+`</span>
                                 <span class="fill-title">审核：</span>
-                                <span class="fill-value">`+this.formData.created+`</span>
+                                <span class="fill-value">`+this.formData.audited+`</span>
                                 <span class="fill-title">审核日期：</span>
                                 <span class="fill-value">`+this.formData.auditedat+`</span>
                             </div>
