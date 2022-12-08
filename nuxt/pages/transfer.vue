@@ -707,29 +707,6 @@ export default {
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
-        },
-        async checkStock() {
-            var res=true
-            var res=await this.$axios({
-                method: 'GET',
-                url: '/api/call',
-                params: { proc: 'CALL getstock();' }
-            }).catch(err => {
-                this.$message({ message: err, type: 'error' })
-            })
-            var tableData=this.$refs.xTable.getTableData().tableData
-            this.stock = Object.values(res.data)
-            for(var i=0;i<tableData.length;i++) {
-                if(tableData[i].pn) {
-                    this.stock.forEach(item => {
-                        if(item.wh==this.formData.owh&&item.pn==tableData[i].pn&&item.stock<tableData[i].qty) {
-                            this.$message({ message: item.pn + '库存不足, 审核失败', type: 'error'})
-                            res = false
-                        }
-                    })
-                }
-            }
-            return res
         }
     }
 }
