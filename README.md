@@ -193,9 +193,7 @@
         CREATE TEMPORARY TABLE usedpn(
             SELECT pn FROM (SELECT pn FROM `inventoryinfo` UNION ALL SELECT pn FROM `bom_c` UNION ALL SELECT pn FROM `borrow_c` UNION ALL SELECT pn FROM `delivery_c` UNION ALL SELECT pn FROM `picklist_c` UNION ALL SELECT pn FROM `po_c` UNION ALL SELECT pn FROM `producewh_c` UNION ALL SELECT pn FROM `receipt_c` UNION ALL SELECT pn FROM `so_c` UNION ALL SELECT substitutes FROM `substitutes_c` UNION ALL SELECT pn FROM `substitutes_c`) AS allpn);
         UPDATE inventory SET status = -1 WHERE status = 1 AND pn IN (SELECT pn FROM usedpn);
-        UPDATE inventory SET status = null WHERE status = 0 AND pn IN (SELECT pn FROM usedpn);
         UPDATE inventory SET status = 1 WHERE status = -1 AND pn NOT IN (SELECT pn FROM usedpn);
-        UPDATE inventory SET status = 0 WHERE status = null AND pn NOT IN (SELECT pn FROM usedpn);
         SELECT 1;
     END;$$
     DELIMITER ;
