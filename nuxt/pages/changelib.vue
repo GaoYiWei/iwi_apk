@@ -5,16 +5,23 @@
                 <vxe-button @click="insertEvent()">新增</vxe-button>
                 <vxe-button @click="saveEvent()" :disabled="ctrlDisabled.saveBtn">提交</vxe-button>
                 <vxe-button @click="editEvent()" :disabled="ctrlDisabled.editBtn">编辑</vxe-button>
-                <vxe-button @click="auditEvent()" :disabled="formData.delivered?true:ctrlDisabled.auditBtn">{{auditBtn}}</vxe-button>
                 <vxe-button @click="deleteEvent()" :disabled="ctrlDisabled.deleteBtn">删除</vxe-button>
+                <vxe-button @click="auditEvent()" :disabled="ctrlDisabled.auditBtn">{{auditBtn}}</vxe-button>
                 <vxe-button @click="printEvent()">打印</vxe-button>
                 <vxe-input style="position:absolute;right:1rem;" v-model="searchVal" placeholder="请输入单号" type="search" clearable @keydown="enterSearch($event)" @search-click="searchEvent()"></vxe-input>
             </template>
         </vxe-toolbar>
-        <vxe-form :class="{ 'readonly': ctrlDisabled.table }" :data="formData" :rules="formRules" ref="deliverForm">
+        <vxe-form :class="{ 'readonly': ctrlDisabled.table }" :data="formData" :rules="formRules" ref="changelibForm">
             <vxe-form-item title="单号" field="id" :item-render="{}">
                 <template #default="{ data }">
                     <vxe-input v-model="data.id" readonly></vxe-input>
+                </template>
+            </vxe-form-item>
+            <vxe-form-item title="分类" field="cat" :item-render="{}">
+                <template #default="{ data }">
+                    <vxe-select v-model="data.cat">
+                        <vxe-option value="库位调整" label="库位调整"></vxe-option>                       
+                    </vxe-select>
                 </template>
             </vxe-form-item>
             <vxe-form-item title="仓库" field="wh" :item-render="{}">
@@ -24,88 +31,6 @@
                     </vxe-select>
                 </template>
             </vxe-form-item>
-            <vxe-form-item title="分类" field="cat" :item-render="{}">
-                <template #default="{ data }">
-                    <vxe-select v-model="data.cat" @change="showModal()">
-                        <vxe-option value="销售出库" label="销售出库"></vxe-option>
-                        <vxe-option value="生产领料" label="生产领料"></vxe-option>
-                        <vxe-option value="采购退货" label="采购退货"></vxe-option>                      
-                        <vxe-option value="其他出库" label="其他出库"></vxe-option>
-                        <vxe-option value="调拨出库" label="调拨出库" disabled></vxe-option>                        
-                    </vxe-select>
-                    <vxe-modal v-model="showRelatedFrom" title="关联单据" width="1600" height="800" resize>
-                        <template #default>
-                            <vxe-toolbar>
-                                <template #buttons>
-                                    <vxe-select v-model="formData.cat">
-                                        <vxe-option value="销售出库" label="销售出库"></vxe-option>
-                                        <vxe-option value="生产领料" label="生产领料"></vxe-option>
-                                        <vxe-option value="采购退货" label="采购退货"></vxe-option>
-                                    </vxe-select>
-                                    <vxe-input style="margin-left: 2rem;" v-model="modalSearchVal" placeholder="请输入单号" type="search" clearable @keydown="modalEnterSearch($event)" @search-click="modalSearchEvent()"></vxe-input>
-                                    <vxe-button @click="getModalData()">确定</vxe-button>
-                                </template>
-                            </vxe-toolbar>
-                            <vxe-form :data="modalFormData">
-                                <vxe-form-item title="单号" field="id">
-                                    <template #default="{ data }">
-                                        <vxe-input v-model="data.id" readonly></vxe-input>
-                                    </template>
-                                </vxe-form-item>
-                                <vxe-form-item title="制单" field="created">
-                                    <template #default="{ data }">
-                                        <vxe-input v-model="data.created" readonly></vxe-input>
-                                    </template>
-                                </vxe-form-item>
-                                <vxe-form-item title="制单时间" field="createdat">
-                                    <template #default="{ data }">
-                                        <vxe-input v-model="data.createdat" readonly></vxe-input>
-                                    </template>
-                                </vxe-form-item>
-                                <vxe-form-item title="备注" field="comment">
-                                    <template #default="{ data }">
-                                        <vxe-input v-model="data.comment" readonly></vxe-input>
-                                    </template>
-                                </vxe-form-item>
-                            </vxe-form>
-                            <vxe-table
-                                border
-                                stripe
-                                resizable
-                                show-overflow
-                                height="660"
-                                header-align="center"
-                                :row-config="{isHover: true, isCurrent: true, useKey: true}"
-                                :data="modalTable">
-                                <vxe-column type="seq" title="序号" width="80"></vxe-column>
-                                <vxe-column field="pn" title="料号" width="120"></vxe-column>
-                                <vxe-column field="qty" title="数量" width="120"></vxe-column>
-                                <vxe-column field="comment" title="备注" width="180"></vxe-column>
-                                <vxe-column field="name" title="品名" width="180">
-                                    <template #default="{ row }">
-                                        <span>{{ getName(row) }}</span>
-                                    </template>
-                                </vxe-column>
-                                <vxe-column field="model" title="型号" width="120">
-                                    <template #default="{ row }">
-                                        <span>{{ getModel(row) }}</span>
-                                    </template>
-                                </vxe-column>
-                                <vxe-column field="namedesc" title="品名描述" width="200">
-                                    <template #default="{ row }">
-                                        <span>{{ getNamedesc(row) }}</span>
-                                    </template>
-                                </vxe-column>
-                                <vxe-column field="manufact" title="厂家" width="170">
-                                    <template #default="{ row }">
-                                        <span>{{ getManufact(row) }}</span>
-                                    </template>
-                                </vxe-column>
-                            </vxe-table>
-                        </template>
-                    </vxe-modal>
-                </template>
-            </vxe-form-item>
             <vxe-form-item title="备注" field="comment" :item-render="{}">
                 <template #default="{ data }">
                     <vxe-input v-model="data.comment"></vxe-input>
@@ -113,7 +38,7 @@
             </vxe-form-item>
         </vxe-form>
         <div style="border:1px lightgray solid">
-            <vxe-toolbar style="padding-left:10px" :class="{ 'readonly': ctrlDisabled.table || formData.cat=='生产领料' || formData.cat=='采购退货' }">
+            <vxe-toolbar style="padding-left:10px" :class="{ 'readonly': ctrlDisabled.table }">
                 <template #buttons>
                 <vxe-button type="text" size="mini" icon="fa vxe-icon-add" @click="insertRowEvent()">新增</vxe-button>
                 <vxe-button type="text" size="mini" icon="fa vxe-icon-delete" @click="$refs.xTable.removeCurrentRow()">删除</vxe-button>
@@ -125,33 +50,36 @@
                 resizable
                 show-overflow
                 ref="xTable"
-                height="660"
+                height="500"
                 header-align="center"
-                :row-config="{isHover: true, isCurrent: true, useKey: true}"
+                :row-config="{isHover: true, isCurrent: true, useKey: true, height: 40}"
                 :data="tableData"
                 :edit-config="{trigger: 'click', mode: 'row', activeMethod: activeRowMethod}">
                 <vxe-column type="seq" title="序号" width="80"></vxe-column>
                 <vxe-column field="pn" title="料号" :edit-render="{name: 'input', props: {type: 'text' }}" width="120"></vxe-column>
                 <vxe-column field="qty" title="数量" :edit-render="{name: 'input', props: {type: 'number'}}" width="120"></vxe-column>
+                <vxe-column field="librariesout" title="出库" :edit-render="{name: 'input', props: {type: 'text'}}" width="120"></vxe-column>
+                <vxe-column field="librariesin" title="入库" :edit-render="{name: 'input', props: {type: 'text'}}" width="120"></vxe-column>
+                <vxe-column field="lotno" title="批号" @change="getDepart" :edit-render="{name: 'input', props: {type: 'text' }}" width="120"></vxe-column>
                 <vxe-column field="comment" title="备注" :edit-render="{name: 'input', props: {type: 'text'}}" width="200"></vxe-column>
-                <vxe-column field="name" title="品名" width="200">
+                <vxe-column field="depart" title="部门" width="120">
+                    <template #default="{ row }">
+                        <span>{{ getDepart(row) }}</span>
+                    </template>
+                </vxe-column>
+                <vxe-column field="name" title="名称" width="200">
                     <template #default="{ row }">
                         <span>{{ getName(row) }}</span>
                     </template>
                 </vxe-column>
-                <vxe-column field="model" title="型号" width="120">
+                <vxe-column field="model" title="规格" width="120">
                     <template #default="{ row }">
                         <span>{{ getModel(row) }}</span>
                     </template>
                 </vxe-column>
-                <vxe-column field="namedesc" title="品名描述" width="300">
+                <vxe-column field="boxmodel" title="箱规" width="200">
                     <template #default="{ row }">
-                        <span>{{ getNamedesc(row) }}</span>
-                    </template>
-                </vxe-column>
-                <vxe-column field="manufact" title="厂家" width="200">
-                    <template #default="{ row }">
-                        <span>{{ getManufact(row) }}</span>
+                        <span>{{ getBoxModel(row) }}</span>
                     </template>
                 </vxe-column>
             </vxe-table>
@@ -199,19 +127,10 @@ export default {
     data() {
         return {
             whList: [],
-            modalFormData: {
-                id: null,
-                created: null,
-                createdat: null,
-                comment: null
-            },
-            modalTable: [],
-            modalSearchVal: '',
             formData: {
                 id: null,
-                wh: null,
                 cat: null,
-                superiorid: null,
+                wh: null,
                 created: null,
                 createdat: null,
                 edited: null,
@@ -221,9 +140,6 @@ export default {
                 comment: null
             },
             formRules: {
-                cat: [
-                    { required: true, message: '请选择类型' }
-                ],
                 wh: [
                     { required: true, message: '请选择仓库' }
                 ]
@@ -234,15 +150,14 @@ export default {
             searchVal: '',
             ctrlDisabled: {
                 saveBtn: true,
-                auditBtn: true,
                 deleteBtn: true,
+                auditBtn: true,
                 editBtn: true,
                 table: true
             },
-            showRelatedFrom: false,
             stock: [],
             isInsert: false,
-            unshipedList: []
+            lotnoInfo: []
         }
     },
     computed: {
@@ -252,12 +167,6 @@ export default {
         }
     },
     mounted() {
-        if(this.$route.query.id) {
-            setTimeout(() => {
-                this.searchVal = this.$route.query.id
-                this.searchEvent()
-            }, 300)
-        }
         this.$axios({
             method: 'GET',
             url: '/api/whs'
@@ -272,7 +181,15 @@ export default {
                 return
             }
         }).catch(err => {
-            this.submitLoading = false
+            this.$message({ message: err, type: 'error' })
+        })
+        this.$axios({
+            method: 'GET',
+            url: '/api/call',
+            params: { proc: 'CALL getliblotno();' }
+        }).then(res => {
+            this.lotnoInfo = res.data
+        }).catch(err => {
             this.$message({ message: err, type: 'error' })
         })
     },
@@ -297,7 +214,9 @@ export default {
                         <td style="text-align: center">`+tableList[i].pn+`</td>
                         <td style="text-align: center">`+this.inventory[tableList[i].pn].name+`</td>
                         <td style="text-align: center">`+this.inventory[tableList[i].pn].model+`</td>
-                        <td style="white-space: nowrap;text-align: center">`+this.inventory[tableList[i].pn].namedesc+`</td>
+                        <td style="white-space: nowrap;text-align: center">`+this.inventory[tableList[i].pn].boxmodel+`</td>
+                        <td style="text-align: center">`+tableList[i].librariesout+`</td>
+                        <td style="text-align: center">`+tableList[i].librariesin+`</td>
                         <td style="white-space: nowrap;text-align: center">`+tableList[i].qty+`</td>
                         <td style="text-align: center">`+this.isNull(tableList[i].comment)+`</td>
                     </tr>
@@ -307,16 +226,16 @@ export default {
             QRCode.toDataURL(this.formData.id).then(url => {
                 const printTmpl = `
                     <table><tbody><tr><td>
-                        <div class="header">出库单</div>
+                        <div class="header">调拨单</div>
                         <img class="qrcode" src="`+url+`"/>
                         <div>
                             <div class="fill-row">
                                 <span class="fill-title">单号：</span>
                                 <span class="fill-value">`+this.formData.id+`</span>
-                                <span class="fill-title">仓库：</span>
-                                <span class="fill-value">`+this.formData.wh+`</span>
                                 <span class="fill-title">分类：</span>
                                 <span class="fill-value">`+this.formData.cat+`</span>
+                                <span class="fill-title">仓库：</span>
+                                <span class="fill-value">`+this.formData.wh+`</span>
                                 <span class="fill-title">备注：</span>
                                 <span class="fill-value">`+this.isNull(this.formData.comment)+`</span>
                             </div>
@@ -324,9 +243,11 @@ export default {
                             <tr>
                                 <th width="65px">序号</th>
                                 <th width="100px">料号</th>
-                                <th width="240px">品名</th>
-                                <th width="130px">型号</th>
-                                <th width="300px">品名描述</th>
+                                <th width="240px">名称</th>
+                                <th width="130px">规格</th>
+                                <th width="300px">箱规</th>
+                                <th width="130px">出库</th>
+                                <th width="130px">入库</th>
                                 <th width="80px">数量</th>
                                 <th width="240px">备注</th>
                             </tr>
@@ -362,125 +283,6 @@ export default {
                 return str
             }
         },
-        showModal() {
-            if(this.formData.cat!='其他出库' && this.formData.cat!='调拨出库') {
-                this.showRelatedFrom = true
-            }
-        },
-        modalEnterSearch($event) {
-            if($event.$event.key=='Enter') { 
-                this.modalSearchEvent()
-            }
-        },
-        modalSearchEvent() {
-            if(Number(this.modalSearchVal)) {
-                this.modalSearchVal = (Array(10).join(0) + Number(this.modalSearchVal)).slice(-10)
-            } else {
-                this.$message({ message: '单号错误', type: 'warning' })
-                return
-            }
-            this.submitLoading = true
-            var proc='CALL'
-            if(this.formData.cat=='销售出库') {
-                proc = proc + ' sounshiped("' + this.modalSearchVal + '");'
-                this.$axios({
-                    method: 'GET',
-                    url: '/api/call',
-                    params: { proc: proc }
-                }).then(res => {
-                    if(Object.keys(res.data).length>0) {
-                        this.modalTable = Object.values(res.data)
-                        this.unshipedList = Object.values(res.data)
-                        this.modalFormData['id'] = this.modalSearchVal
-                        this.modalFormData['created'] = Object.values(res.data)[0]['created']
-                        this.modalFormData['createdat'] = Object.values(res.data)[0]['createdat']
-                        this.modalFormData['comment'] = Object.values(res.data)[0]['mcomment']
-                    } else {
-                        this.modalTable = []
-                        this.modalFormData['id'] = null
-                        this.modalFormData['created'] = null
-                        this.modalFormData['createdat'] = null
-                        this.modalFormData['comment'] = null
-                        this.$message({ message: '没有找到记录', type: 'warning' })
-                    }
-                    this.submitLoading = false
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
-                })
-            } else if(this.formData.cat=='生产领料') {
-                this.$axios({
-                    method: 'GET',
-                    url: '/api/picklist',
-                    params: { id: this.modalSearchVal }
-                }).then(res => {
-                    if(res.data['picklist_m'].length==0) {
-                        this.$message({ message: '没有找到记录', type: 'warning' })
-                        return
-                    }
-                    if(!res.data['picklist_m'][0]['audited']) {
-                        this.$message({ message: '当前生产领料单未审核', type: 'warning' })
-                        return
-                    }
-                    if(res.data['picklist_m'][0]['status']==-1) {
-                        this.$message({ message: '当前生产领料单已出库', type: 'warning' })
-                        return
-                    }
-                    this.modalTable = res.data['picklist_c']
-                    this.modalFormData['id'] = res.data['picklist_m'][0]['id']
-                    this.modalFormData['created'] = res.data['picklist_m'][0]['created']
-                    this.modalFormData['createdat'] = res.data['picklist_m'][0]['createdat']
-                    this.modalFormData['comment'] = res.data['picklist_m'][0]['comment']
-                    this.submitLoading = false
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
-                })
-            } else if(this.formData.cat=='采购退货') {
-                this.$axios({
-                    method: 'GET',
-                    url: '/api/po',
-                    params: { id: this.modalSearchVal }
-                }).then(res => {
-                    if(res.data['po_m'].length==0) {
-                        this.$message({ message: '没有找到记录', type: 'warning' })
-                        return
-                    }
-                    if(res.data['po_m'][0]['cat']!='退货') {
-                        this.$message({ message: '当前单据类型为 ' + res.data['po_m'][0]['cat'], type: 'warning' })
-                        return
-                    }
-                    if(res.data['po_m'][0]['status']==-1) {
-                        this.$message({ message: '当前采购单已出库', type: 'warning' })
-                        return
-                    }
-                    this.modalTable = res.data['po_c']
-                    this.modalFormData['id'] = res.data['po_m'][0]['id']
-                    this.modalFormData['created'] = res.data['po_m'][0]['created']
-                    this.modalFormData['createdat'] = res.data['po_m'][0]['createdat']
-                    this.modalFormData['comment'] = res.data['po_m'][0]['comment']
-                    this.submitLoading = false
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
-                })
-            }
-        },
-        getModalData() {
-            this.formData.superiorid = this.modalFormData.id
-            this.tableData = []
-            this.modalFormData = {
-                id: null,
-                created: null,
-                createdat: null,
-                comment: null
-            }
-            this.modalTable.forEach(item => {
-                this.tableData.push({pn: item.pn, qty: item.qty})
-            })
-            this.modalTable = []
-            this.showRelatedFrom = false
-        },
         enterSearch($event) {
             if($event.$event.key=='Enter') { 
                 this.searchEvent()
@@ -496,16 +298,16 @@ export default {
                 this.submitLoading = true
                 this.$axios({
                     method: 'GET',
-                    url: '/api/delivery',
+                    url: '/api/changelib',
                     params: { id: this.searchVal }
                 }).then(res => {
-                    if(res.data['delivery_m'].length==0) {
+                    if(res.data['changelib_m'].length==0) {
                         this.$message({ message: '没有找到记录', type: 'warning' })
                         return
                     }
                     this.submitLoading = false
-                    this.formData = res.data['delivery_m'][0]
-                    this.tableData = res.data['delivery_c']
+                    this.formData = res.data['changelib_m'][0]
+                    this.tableData = res.data['changelib_c']
                     this.ctrlDisabled.saveBtn = true
                     this.ctrlDisabled.auditBtn = false
                     this.ctrlDisabled.table = true
@@ -526,28 +328,27 @@ export default {
                 const confirmRes = await this.$confirm(
                     '当前单据未保存, 是否继续?',
                     '提示', {
-                        confirmButtonText: '确定',
-                        cancelButtonText: '取消',
-                        type: 'warning'
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
                     }
                 ).catch(() => this.$message.info('已经取消新增'))
                 if(confirmRes!=='confirm') {
                     return
                 }
-            }            
+            }
             this.searchVal = null
             this.submitLoading = true
             this.isInsert = true
             this.$axios({
                 method: 'GET',
                 url: '/api/id',
-                params: {id: 'delivery'}
+                params: {id: 'changelib'}
             }).then(res => {
                 this.formData = {
                     id: res.data,
-                    wh: null,
                     cat: null,
-                    superiorid: null,
+                    wh: null,
                     created: this.$store.state.user.name,
                     createdat: new Date().toLocaleString('chinese', { hour12: false }),
                     edited: null,
@@ -576,6 +377,10 @@ export default {
         },
         deleteEvent() {
             var btnStatus = this.ctrlDisabled
+            if(this.formData.created!=this.$store.state.user.name) {
+                this.$message({ message: '当前帐号与该单据创建人不一致，删除失败', type: 'warning' })
+                return
+            }
             this.$nuxt.$emit('btnCtrl', 'delete', res => {
                 this.ctrlDisabled = res
             })
@@ -587,21 +392,17 @@ export default {
                 this.submitLoading = true
                 this.$axios({
                     method: 'DELETE',
-                    url: '/api/delivery',
+                    url: '/api/changelib',
                     params: { id: this.formData.id }
                 }).then(res => {
                     this.submitLoading = false
                     if(res.data=='OK') {
                         this.isEdit = false
-                        this.$refs.xTable.remove()
-                        this.$message({ message: '删除成功', type: 'success' })
-                        this.updateStatus({ cat: this.formData.cat, superiorid: this.formData.superiorid, e: 'del' })
                         this.formData = {
                             id: null,
-                            wh: null,
                             cat: null,
+                            wh: null,
                             comment: null,
-                            superiorid: null,
                             created: null,
                             createdat: null,
                             edited: null,
@@ -609,6 +410,8 @@ export default {
                             audited: null,
                             auditedat: null
                         }
+                        this.$refs.xTable.remove()
+                        this.$message({ message: '删除成功', type: 'success' })
                     } else {
                         this.$message({ message: res.data, type: 'error' })
                         this.ctrlDisabled = btnStatus
@@ -623,17 +426,15 @@ export default {
             })
         },
         async auditEvent() {
-            this.submitLoading = true
             var btnStatus = this.ctrlDisabled
             this.$nuxt.$emit('btnCtrl', this.formData.audited ? 'unaudit' : 'audit', res => {
                 this.ctrlDisabled = res
             })
-            var audited=this.$store.state.user.name, auditedat=new Date().toLocaleString('chinese', { hour12: false }), msg='已审核',status=1
+            var audited=this.$store.state.user.name, auditedat=new Date().toLocaleString('chinese', { hour12: false }), msg='已审核'
             if(this.formData.audited) {
                 audited = null
                 auditedat = null
                 msg = '已弃审'
-                status = 0
             } else {
                 var c=await this.checkStock()
                 if(!c) {
@@ -641,10 +442,11 @@ export default {
                     return
                 }
             }
-            var data = { w: { id: this.formData.id }, v: { audited: audited, auditedat: auditedat, status: status } }
+            var data = { w: { id: this.formData.id }, v: { audited: audited, auditedat: auditedat } }
+            this.submitLoading = true
             this.$axios({
                 method: 'PATCH',
-                url: '/api/delivery',
+                url: '/api/changelib',
                 params: data
             }).then(res => {
                 this.submitLoading = false
@@ -652,6 +454,11 @@ export default {
                     this.$message({ message: msg, type: 'success' })
                     this.formData.audited = audited
                     this.formData.auditedat = auditedat
+                    if(this.formData.audited) {
+                        this.createIO()
+                    } else  {
+                        this.deleteIO()
+                    }                  
                 } else {
                     this.$message({ message: res.data, type: 'error' })
                     this.ctrlDisabled = btnStatus
@@ -664,7 +471,7 @@ export default {
         },
         saveEvent() {
             this.searchVal = null
-            this.$refs['deliverForm'].validate(async valid => {
+            this.$refs['changelibForm'].validate((valid) => {
                 if(!valid) {
                     var data = this.getData()
                     var btnStatus = this.ctrlDisabled
@@ -682,14 +489,13 @@ export default {
                         this.formData.editedat = new Date().toLocaleString('chinese', { hour12: false })
                         this.$axios({
                             method: 'PUT',
-                            url: '/api/delivery',
+                            url: '/api/changelib',
                             data: data
                         }).then(res => {
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.isEdit = false
-                                this.updateStatus({ cat: this.formData.cat, superiorid: this.formData.superiorid })
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
@@ -700,33 +506,15 @@ export default {
                             this.$message({ message: err, type: 'error' })
                         })
                     } else {
-                        var c=await this.checkQty()
-                        if(!c&&this.formData.cat=='销售出库') {
-                            const confirmRes = await this.$confirm(
-                                '当前单据超数量出库, 是否继续?',
-                                '提示', {
-                                    confirmButtonText: '确定',
-                                    cancelButtonText: '取消',
-                                    type: 'warning'
-                                }
-                            ).catch(() => {
-                                this.ctrlDisabled = btnStatus
-                                this.$message.info('已取消保存')
-                            })
-                            if(confirmRes!=='confirm') {
-                                return
-                            }
-                        }
                         this.$axios({
                             method: 'POST',
-                            url: '/api/delivery',
+                            url: '/api/changelib',
                             data: data
                         }).then(res => {
                             this.submitLoading = false
                             if(res.data=='OK') {
                                 this.$message({ message: '保存成功', type: 'success' })
                                 this.isInsert = false
-                                this.updateStatus({ cat: this.formData.cat, superiorid: this.formData.superiorid })
                             } else {
                                 this.$message({ message: res.data, type: 'error' })
                                 this.ctrlDisabled = btnStatus
@@ -742,46 +530,43 @@ export default {
             })
         },
         getData() {
-            var res=[[this.formData]], t=[], t1={id: this.formData.id}, r={}, tableData=this.$refs.xTable.getTableData().tableData
+            var res=[[this.formData]], t=[], t1={id: this.formData.id}, r={}, tableData=this.$refs.xTable.getTableData().tableData, depart
             for(var i=0;i<tableData.length;i++) {
-                if(tableData[i].pn && tableData[i].qty>0) {     
-                    r={}
-                    t.push(Object.assign(r, t1, tableData[i]))
-                } else if(tableData[i].pn && !tableData[i].qty || tableData[i].pn && tableData[i].qty<=0) {
-                    this.$message({ message: tableData[i].pn + '未填写有效数量', type: 'error' })
+                if(tableData[i].pn && isNaN(tableData[i].qty) || tableData[i].pn && !tableData[i].qty || tableData[i].pn && tableData[i].qty<=0) {
+                    this.$message({ message: tableData[i].pn + '未填写有效数量', type: 'warning' })
                     return
+                } else if (tableData[i].pn && !tableData[i].librariesin||tableData[i].pn && !tableData[i].librariesout) {
+                    this.$message({ message: tableData[i].pn + '库位不完整', type: 'warning' })
+                    return
+                } else if (tableData[i].pn && tableData[i].librariesin==tableData[i].librariesout) {
+                    this.$message({ message: tableData[i].pn + '出入库位相同', type: 'warning' })
+                    return
+                } else if (tableData[i].pn && !tableData[i].lotno) {
+                    this.$message({ message: tableData[i].pn + '未填写批号', type: 'warning' })
+                    return
+                } else if (tableData[i].pn && tableData[i].qty>0) {
+                    r={}
+                    depart = this.getDepart({pn: tableData[i].pn, lotno: tableData[i].lotno})
+                    if(!depart) {
+                        this.$message({ message: tableData[i].pn + ' ' + tableData[i].lotno + '未查询到归属部门', type: 'warning' })
+                        return
+                    }
+                    t.push(Object.assign(r, t1, tableData[i], {depart: depart}))
                 }
             }
             if(t.length==0) {
-                this.$message({ message: '未填写出库明细', type: 'error' })
+                this.$message({ message: '未填写调拨明细', type: 'error' })
                 return
             }
             res.push(t)
             return res
         },
-        async checkQty() {
-            if(this.formData.cat=='销售出库') {
-                var isOver=true
-                var res=await this.$axios({
-                    method: 'GET',
-                    url: '/api/call',
-                    params: { proc: 'CALL sounshiped("' + this.formData.superiorid + '");' }
-                }).catch(err => {
-                    this.$message({ message: err, type: 'error' })
-                })
-                if(Object.keys(res.data).length>0) {
-                    var tableData=this.$refs.xTable.getTableData().tableData, unshiped=Object.values(res.data)
-                    for(var i=0;i<tableData.length;i++) {
-                        for(var j=0;j<unshiped.length;j++) {                            
-                            if(tableData[i].pn==unshiped[j].pn && unshiped[j].qty<tableData[i].qty) {
-                                isOver = false
-                            }
-                        }
-                    }
-                } else {
-                    isOver = false
+        getDepart(row) {
+            if(!row.pn||!row.lotno) { return }
+            for(var i=0;i<this.lotnoInfo.length;i++) {
+                if(row.pn==this.lotnoInfo[i].pn&&row.lotno==this.lotnoInfo[i].lotno) {
+                    return this.lotnoInfo[i].depart
                 }
-                return isOver
             }
         },
         getName(row) {
@@ -791,7 +576,7 @@ export default {
                     var records = this.$refs.xTable.getTableData().tableData
                     for(var i=0;i<records.length;i++) {
                         if(!records[i].pn || row._X_ROW_KEY==records[i]._X_ROW_KEY) {continue}
-                        if(row.pn==records[i].pn) {
+                        if(row.pn==records[i].pn && row.libraries==records[i].libraries && row.lotno==records[i].lotno) {
                             this.$message({ message: '重复添加', type: 'warning' })
                             records[i].pn = null
                             records[i].qty = null
@@ -820,18 +605,10 @@ export default {
                 return null
             }
         },
-        getNamedesc(row) {
+        getBoxModel(row) {
             if(!row.pn){ return }
             if(this.inventory[row.pn]) {
-                return this.inventory[row.pn].namedesc
-            } else {
-                return null
-            }
-        },
-        getManufact(row) {
-            if(!row.pn){ return }
-            if(this.inventory[row.pn]) {
-                return this.inventory[row.pn].manufact
+                return this.inventory[row.pn].boxmodel
             } else {
                 return null
             }
@@ -839,105 +616,130 @@ export default {
         insertRowEvent() {
             this.$refs.xTable.insertAt({},-1)
         },
-        updateStatus(param) {
-            var data = { w: { id: param.superiorid }, v: { status: -1 } }, msg='已完结'
-            if(param.cat=='销售出库') {
-                this.$axios({
-                    method: 'GET',
-                    url: '/api/call',
-                    params: { proc: 'CALL sounshiped("' + param.superiorid + '");' }
-                }).then(res => {
-                    if(Object.keys(res.data).length>0) {
-                        var r=0
-                        Object.values(res.data).forEach(item => {
-                            r = r + item['shiped']
-                        })
-                        if(r==0) {
-                            data['v']['status'] = 1
-                            msg = '待出库'
-                        } else {
-                            data['v']['status'] = null
-                            msg = '已出库'
-                        }
-                    }
-                    this.$axios({
-                        method: 'PATCH',
-                        url: '/api/so',
-                        params: data
-                    }).then(res => {
-                        if(res.data=='OK') {
-                            this.$message({ message: '已变更销售单' + param.superiorid + '状态为' + msg, type: 'success' })
-                        } else {
-                            this.$message({ message: res.data, type: 'error' })
-                        }
-                    }).catch(err => {
-                        this.$message({ message: err, type: 'error' })
-                    })
-                }).catch(err => {
-                    this.$message({ message: err, type: 'error' })
-                })
-            } else if(param.cat=='生产领料') {
-                if(param.e) {
-                    data['v']['status'] = 1
-                    msg = '待出库'
-                }
-                this.$axios({
-                    method: 'PATCH',
-                    url: '/api/picklist',
-                    params: data
-                }).then(res => {
-                    if(res.data=='OK') {
-                        this.$message({ message: '已变更生产领料单' + param.superiorid + '状态为' + msg, type: 'success' })
-                    } else {
-                        this.$message({ message: res.data, type: 'error' })
-                    }
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
-                })
-            } else if(param.cat=='采购退货') {
-                if(param.e) {
-                    data['v']['status'] = 1
-                    msg = '待出库'
-                }
-                this.$axios({
-                    method: 'PATCH',
-                    url: '/api/po',
-                    params: data
-                }).then(res => {
-                    if(res.data=='OK') {
-                        this.$message({ message: '已变更采购单' + param.superiorid + '状态为' + msg, type: 'success' })
-                    } else {
-                        this.$message({ message: res.data, type: 'error' })
-                    }
-                }).catch(err => {
-                    this.submitLoading = false
-                    this.$message({ message: err, type: 'error' })
-                })
-            }
-        },
         async checkStock() {
-            var res=true
-            var res=await this.$axios({
+            this.$axios({
                 method: 'GET',
                 url: '/api/call',
-                params: { proc: 'CALL getstock();' }
+                params: { proc: 'CALL getliblotno();' }
+            }).then(res => {
+                this.lotnoInfo = res.data
             }).catch(err => {
                 this.$message({ message: err, type: 'error' })
             })
             var tableData=this.$refs.xTable.getTableData().tableData
-            this.stock = Object.values(res.data)
             for(var i=0;i<tableData.length;i++) {
                 if(tableData[i].pn) {
-                    this.stock.forEach(item => {
-                        if(item.wh==this.formData.wh&&item.pn==tableData[i].pn&&item.stock<tableData[i].qty) {
-                            this.$message({ message: item.pn + '库存不足, 审核失败', type: 'error'})
-                            res = false
+                    for(var j=0;j<this.lotnoInfo.length;j++) {
+                        if(tableData[i].pn==this.lotnoInfo[j].pn&&tableData[i].librariesout==this.lotnoInfo[j].libraries&&tableData[i].lotno==this.lotnoInfo[j].lotno) {
+                            if(tableData[i].qty>this.lotnoInfo[j].qty) {
+                                this.$message({ message: tableData[i].pn + ' ' + tableData[i].librariesout + ' ' + tableData[i].lotno + ' 库存不足', type: 'warning' })
+                                return false
+                            }
+                            break
                         }
-                    })
+                        if(j==this.lotnoInfo.length-1) {
+                            this.$message({ message: tableData[i].pn + ' ' + tableData[i].librariesout + ' ' + tableData[i].lotno + ' 库存不足', type: 'warning' })
+                            return false
+                        }
+                    }
                 }
             }
-            return res
+            return true
+        },
+        createIO() {
+            var indata=[], outdata=[], inform=[{
+                id: null,
+                cat: '库位调整',
+                wh: this.formData.wh,
+                superiorid: this.formData.id,
+                comment: this.formData.comment,
+                created: this.formData.created,
+                createdat: this.formData.auditedat
+            }], depart='', outform=[{
+                id: null,
+                cat: '库位调整',
+                wh: this.formData.wh,
+                superiorid: this.formData.id,
+                comment: this.formData.comment,
+                created: this.formData.created,
+                createdat: this.formData.auditedat
+            }]
+            this.$axios({
+                method: 'GET',
+                url: '/api/id',
+                params: {id: 'lotnoout'}
+            }).then(res => {
+                outform[0].id = res.data
+                this.$refs.xTable.getTableData().tableData.forEach(item => {
+                    if(item.pn && item.lotno) {
+                        outdata.push({ id: outform[0].id, libraries: item.librariesout, pn: item.pn, qty: item.qty, lotno: item.lotno, qty: item.qty })
+                    }
+                })
+                this.$axios({
+                    method: 'POST',
+                    url: '/api/lotnoout',
+                    data: [outform, outdata]
+                }).then(res => {
+                    if(res.data=='OK') {
+                        this.$message({ message: '已生成批号出库记录' + outform[0].id, type: 'success' })
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
+                    }
+                }).catch(err => {
+                    this.$message({ message: err, type: 'error' })
+                })
+
+            }).catch(err => {
+                this.$message({ message: err, type: 'error' })
+            })
+            this.$axios({
+                method: 'GET',
+                url: '/api/id',
+                params: {id: 'lotnoin'}
+            }).then(res => {
+                inform[0].id = res.data
+                this.$refs.xTable.getTableData().tableData.forEach(item => {
+                    for(var i=0;i<this.lotnoInfo.length;i++) {
+                        if(item.pn==this.lotnoInfo[i].pn&&item.lotno==this.lotnoInfo[i].lotno) {
+                            depart = this.lotnoInfo[i].depart
+                        }
+                    }
+                    if(item.pn && item.lotno) {
+                        indata.push({ id: inform[0].id, libraries: item.librariesin, pn: item.pn, qty: item.qty, lotno: item.lotno, qty: item.qty, depart: depart })
+                    }
+                })
+                this.$axios({
+                    method: 'POST',
+                    url: '/api/lotnoin',
+                    data: [inform, indata]
+                }).then(res => {
+                    if(res.data=='OK') {
+                        this.$message({ message: '已生成批号入库记录' + inform[0].id, type: 'success' })
+                    } else {
+                        this.$message({ message: res.data, type: 'error' })
+                    }
+                }).catch(err => {
+                    this.$message({ message: err, type: 'error' })
+                })
+
+            }).catch(err => {
+                this.$message({ message: err, type: 'error' })
+            }) 
+        },
+        deleteIO() {
+            this.$axios({
+                method: 'GET',
+                url: '/api/call',
+                params: { proc: 'CALL dellotno("' + this.formData.id + '");' }
+            }).then(res => {
+                if(res.data[0]['err']==0) {
+                    this.$message({ message: '库位调整记录已删除', type: 'success' })
+                } else {
+                    this.$message({ message: '库位调整记录删除失败, 请手动从数据库中删除', type: 'error' })
+                }
+            }).catch(err => {
+                this.$message({ message: err, type: 'error' })
+            })
         }
     }
 }

@@ -1003,7 +1003,213 @@ const sbntrace = sequelize.define('sbntrace', {
         { name: 'sbntrace_orderid', using: 'BTREE', fields: [{ attribute: 'orderid', length: 4 }] }
     ]
 })
+const lotnoin_m = sequelize.define('lotnoin_m', {
+    id: {
+        type: DataTypes.STRING(10),
+        primaryKey: true
+    },
+    cat: {
+        type: DataTypes.STRING(8)
+    },
+    superiorid: {
+        type: DataTypes.STRING(10)
+    },
+    wh: {
+        type: DataTypes.STRING(20)
+    },
+    comment: {
+        type: DataTypes.STRING(100)
+    },
+    created: {
+        type: DataTypes.STRING(10)
+    },
+    createdat: {
+        type: DataTypes.DATE
+    },
+    edited: {
+        type: DataTypes.STRING(10)
+    },
+    editedat: {
+        type: DataTypes.DATE
+    }
+}, {
+    freezeTableName: true,
+    timestamps: false,
+    indexes: [
+        { name: 'lotnin_superiorid', using: 'BTREE', fields: [{ attribute: 'superiorid', length: 5 }] }
+    ]
+})
+const lotnoin_c = sequelize.define('lotnoin_c', {
+    id: {
+        type: DataTypes.STRING(10),
+        primaryKey: true
+    },
+    libraries: {
+        type: DataTypes.STRING(15),
+        primaryKey: true
+    },
+    pn: {
+        type: DataTypes.STRING(9),
+        primaryKey: true
+    },
+    lotno: {
+        type: DataTypes.INTEGER(6),
+        primaryKey: true
+    },
+    depart: {
+        type: DataTypes.STRING(16),
+        primaryKey: true
+    },
+    qty: {
+        type: DataTypes.FLOAT
+    }
+}, {
+    freezeTableName: true,
+    timestamps: false,
+    indexes: [
+        { name: 'lotnin_lib', using: 'BTREE', fields: [{ attribute: 'libraries', length: 6 }] },
+        { name: 'lotnin_pn', using: 'BTREE', fields: [{ attribute: 'pn', length: 5 }] },
+        { name: 'lotnin_dep', using: 'BTREE', fields: [{ attribute: 'depart', length: 4 }] }
+    ]
+})
 
+const lotnoout_m = sequelize.define('lotnoout_m', {
+    id: {
+        type: DataTypes.STRING(10),
+        primaryKey: true
+    },
+    cat: {
+        type: DataTypes.STRING(8)
+    },
+    superiorid: {
+        type: DataTypes.STRING(10)
+    },
+    wh: {
+        type: DataTypes.STRING(20)
+    },
+    comment: {
+        type: DataTypes.STRING(100)
+    },
+    created: {
+        type: DataTypes.STRING(10)
+    },
+    createdat: {
+        type: DataTypes.DATE
+    },
+    edited: {
+        type: DataTypes.STRING(10)
+    },
+    editedat: {
+        type: DataTypes.DATE
+    }
+}, {
+    freezeTableName: true,
+    timestamps: false,
+    indexes: [
+        { name: 'lotnout_superiorid', using: 'BTREE', fields: [{ attribute: 'superiorid', length: 5 }] }
+    ]
+})
+const lotnoout_c = sequelize.define('lotnoout_c', {
+    id: {
+        type: DataTypes.STRING(10),
+        primaryKey: true
+    },
+    libraries: {
+        type: DataTypes.STRING(15),
+        primaryKey: true
+    },
+    pn: {
+        type: DataTypes.STRING(9),
+        primaryKey: true
+    },
+    lotno: {
+        type: DataTypes.INTEGER(6),
+        primaryKey: true
+    },
+    qty: {
+        type: DataTypes.FLOAT
+    }
+}, {
+    freezeTableName: true,
+    timestamps: false,
+    indexes: [
+        { name: 'lotnout_lib', using: 'BTREE', fields: [{ attribute: 'libraries', length: 6 }] },
+        { name: 'lotnout_pn', using: 'BTREE', fields: [{ attribute: 'pn', length: 5 }] }
+    ]
+})
+
+const changelib_m = sequelize.define('changelib_m', {
+    id: {
+        type: DataTypes.STRING(10),
+        primaryKey: true
+    },
+    cat: {
+        type: DataTypes.STRING(8)
+    },
+    wh: {
+        type: DataTypes.STRING(20)
+    },
+    comment: {
+        type: DataTypes.STRING(100)
+    },
+    created: {
+        type: DataTypes.STRING(10)
+    },
+    createdat: {
+        type: DataTypes.DATE
+    },
+    edited: {
+        type: DataTypes.STRING(10)
+    },
+    editedat: {
+        type: DataTypes.DATE
+    },
+    audited: {
+        type: DataTypes.STRING(10)
+    },
+    auditedat: {
+        type: DataTypes.DATE
+    }
+}, {
+    freezeTableName: true,
+    timestamps: false
+})
+const changelib_c = sequelize.define('changelib_c', {
+    id: {
+        type: DataTypes.STRING(10),
+        primaryKey: true
+    },
+    librariesout: {
+        type: DataTypes.STRING(15),
+        primaryKey: true
+    },
+    librariesin: {
+        type: DataTypes.STRING(15),
+        primaryKey: true
+    },
+    pn: {
+        type: DataTypes.STRING(9),
+        primaryKey: true
+    },
+    lotno: {
+        type: DataTypes.INTEGER(6),
+        primaryKey: true
+    },
+    depart: {
+        type: DataTypes.STRING(16),
+        primaryKey: true
+    },
+    qty: {
+        type: DataTypes.FLOAT
+    }
+}, {
+    freezeTableName: true,
+    timestamps: false,
+    indexes: [
+        { name: 'changelib_pn', using: 'BTREE', fields: [{ attribute: 'pn', length: 5 }] },
+        { name: 'changelib_dep', using: 'BTREE', fields: [{ attribute: 'depart', length: 4 }] }
+    ]
+})
 // sequelize.sync().then(()=>{
 //     users.create({account: '1144806425@qq.com',name: 'admin',pwd: '7509603916',tel: '18550442412',depart: 'admin',created: 'admin',createdat: Date(),status: 1}).then( res => {
 //         console.log('模型已同步到数据库') 
@@ -1123,5 +1329,11 @@ module.exports = {
     disassemb_c,
     borrow_m,
     borrow_c,
-    sbntrace
+    sbntrace,
+    lotnoin_m,
+    lotnoin_c,
+    lotnoout_m,
+    lotnoout_c,
+    changelib_m,
+    changelib_c
 }

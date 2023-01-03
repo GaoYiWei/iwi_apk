@@ -113,8 +113,8 @@
                 </template>
             </vxe-form-item>
         </vxe-form>
-        <div style="border:1px lightgray solid" :class="{ 'readonly': ctrlDisabled.table || formData.cat=='生产入库' || formData.cat=='销售退货' }">
-            <vxe-toolbar style="padding-left:10px">
+        <div style="border:1px lightgray solid">
+            <vxe-toolbar style="padding-left:10px" :class="{ 'readonly': ctrlDisabled.table || formData.cat=='生产入库' || formData.cat=='销售退货' }">
                 <template #buttons>
                 <vxe-button type="text" size="mini" icon="fa vxe-icon-add" @click="insertRowEvent()">新增</vxe-button>
                 <vxe-button type="text" size="mini" icon="fa vxe-icon-delete" @click="$refs.xTable.removeCurrentRow()">删除</vxe-button>
@@ -130,7 +130,7 @@
                 header-align="center"
                 :row-config="{isHover: true, isCurrent: true, useKey: true}"
                 :data="tableData"
-                :edit-config="{trigger: 'click', mode: 'row'}">
+                :edit-config="{trigger: 'click', mode: 'row', activeMethod: activeRowMethod}">
                 <vxe-column type="seq" title="序号" width="80"></vxe-column>
                 <vxe-column field="pn" title="料号" :edit-render="{name: 'input', props: {type: 'text' }}" width="120"></vxe-column>
                 <vxe-column field="qty" title="数量" :edit-render="{name: 'input', props: {type: 'number'}}" width="120"></vxe-column>
@@ -277,6 +277,9 @@ export default {
         })
     },
     methods : {
+        activeRowMethod ({ row, rowIndex }) {
+            return !this.ctrlDisabled.table
+        },
         printEvent() {
             const printStyle = `
                 .fill-row { display: inline-block; height: 36px; margin-top: 36px; }

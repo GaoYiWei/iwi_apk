@@ -127,6 +127,28 @@ router.put('/disassemb', disassemb.update)
 router.delete('/disassemb', disassemb.delete)
 router.patch('/disassemb', disassemb.change)
 
+
+var lotnoin = require('./lotnoin')
+router.get('/lotnoin', lotnoin.select)
+router.post('/lotnoin', lotnoin.insert)
+router.delete('/lotnoin', lotnoin.delete)
+router.patch('/lotnoin', lotnoin.change)
+router.put('/lotnoin', lotnoin.update)
+
+var lotnoout = require('./lotnoout')
+router.get('/lotnoout', lotnoout.select)
+router.post('/lotnoout', lotnoout.insert)
+router.delete('/lotnoout', lotnoout.delete)
+router.patch('/lotnoout', lotnoout.change)
+router.put('/lotnoout', lotnoout.update)
+
+var changelib = require('./changelib')
+router.get('/changelib', changelib.select)
+router.post('/changelib', changelib.insert)
+router.delete('/changelib', changelib.delete)
+router.patch('/changelib', changelib.change)
+router.put('/changelib', changelib.update)
+
 var addr = require('../public/json/cities.json')
 router.get('/addr', (req, res) => {    
     res.send(JSON.stringify(addr))

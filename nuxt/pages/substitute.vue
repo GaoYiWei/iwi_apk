@@ -36,8 +36,8 @@
                 </template>
             </vxe-form-item>
         </vxe-form>
-        <div style="border:1px lightgray solid" :class="{ 'readonly': ctrlDisabled.table }">
-            <vxe-toolbar style="padding-left:10px">
+        <div style="border:1px lightgray solid">
+            <vxe-toolbar style="padding-left:10px" :class="{ 'readonly': ctrlDisabled.table }">
                 <template #buttons>
                 <vxe-button type="text" size="mini" icon="fa vxe-icon-add" @click="insertRowEvent()">新增</vxe-button>
                 <vxe-button type="text" size="mini" icon="fa vxe-icon-delete" @click="$refs.xTable.removeCurrentRow()">删除</vxe-button>
@@ -53,7 +53,7 @@
                 header-align="center"
                 :row-config="{isHover: true, isCurrent: true, useKey: true}"
                 :data="tableData"
-                :edit-config="{trigger: 'click', mode: 'row'}"
+                :edit-config="{trigger: 'click', mode: 'row', activeMethod: activeRowMethod}"
                 @cell-dblclick="cellDBLClickEvent">
                 <vxe-table-column width="60">
                     <template v-slot>
@@ -171,6 +171,9 @@ export default {
         this.rowDrop()
     },
     methods : {
+        activeRowMethod ({ row, rowIndex }) {
+            return !this.ctrlDisabled.table
+        },
         enterSearch($event) {
             if($event.$event.key=='Enter') { 
                 this.searchEvent()
