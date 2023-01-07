@@ -9,6 +9,7 @@ export default function ({ $axios, redirect }) {
     $axios.onResponse(response => {
         switch(response.data.code) {
             case 403 :
+                localStorage.clear()
                 redirect('/login')
             break
         }
@@ -16,8 +17,11 @@ export default function ({ $axios, redirect }) {
     })  
     $axios.onError(error => {
         const code = parseInt(error.response && error.response.status)
-        if(code != 200){
+        if(code == 403) {
+            localStorage.clear()
+            redirect('/')
+        } else if(code != 200){
             console.log('服务器' + code + '错误')
-         }
+        }
     })
 }
