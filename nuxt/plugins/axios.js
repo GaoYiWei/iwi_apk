@@ -10,7 +10,7 @@ export default function ({ $axios, redirect }) {
         switch(response.data.code) {
             case 403 :
                 localStorage.clear()
-                redirect('/login')
+                redirect('/')
             break
         }
         return response
