@@ -1,1 +1,1 @@
-git add . && git commit -m "something changed" && git push origin master
+git add . && git commit -m "登录校验方式" && git push origin master
