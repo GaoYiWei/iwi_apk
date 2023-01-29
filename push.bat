@@ -1,1 +1,1 @@
-git add . && git commit -m "登录校验方式" && git push origin master
+git add . && git commit -m "login verification method" && git push origin master
