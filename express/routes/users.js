@@ -58,7 +58,7 @@ module.exports = {
         })
     },
     login :  (req, res) => {
-        // 需修改为使用帐号检索用户数据，后校验密码及状态，根据校验结果返回消息
+        // 需修改为使用帐号检索用户数据，后校验密码及状态，根据校验结果返回登录结果
         var list = [ sequelize.users, req.query ]
         sequelize.select(list).then(data => {
             var msg = {token: null, err: null, user: {account: null, name: null, depart: null}}

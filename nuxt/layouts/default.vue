@@ -276,6 +276,7 @@ export default {
             }
         },
         submitForm() {
+            // 登录仅传递帐号及密码，后台校验状态
             this.$refs['loginForm'].validate((valid) => {
                 if(valid) {
                     this.loginForm.pwd = this.getHash(this.loginForm.pwd)
