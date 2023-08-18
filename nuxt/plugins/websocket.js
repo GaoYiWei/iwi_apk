@@ -11,7 +11,7 @@ var ws = {
                     return alert('您的浏览器不支持WebSocket')
                 }
                 // 连接服务器
-                this.ws = new WebSocket('ws://192.168.0.13:9998')
+                this.ws = new WebSocket('ws://127.0.0.1:9998')
                 this.ws.onopen = () => {
                     this.connected = true
                     this.connectRetryCount = 0

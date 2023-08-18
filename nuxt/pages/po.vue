@@ -730,6 +730,7 @@ export default {
                     this.$nuxt.$emit('btnCtrl', 'save', res => {
                         this.ctrlDisabled = res
                     })
+                    console.log(data)
                     this.submitLoading = true
                     if(this.isEdit) {
                         if(this.dataTemp==JSON.stringify(data)) {
